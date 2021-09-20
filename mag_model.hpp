@@ -1,126 +1,111 @@
-#include <iostream>
-#include <utility>
-#include <cmath>
-#include "mag_suspension.hpp"
+#ifndef MAG_MODEL
+#define MAG_MODEL
 
-#define show_size
-inline const float PI = 3.14f;
-inline const float myu_0 = 4 * PI * 1E-7;
+#include <memory>
+#include "mag_suspension.hpp"
+#include "curve.hpp"
+
+
+
+typedef struct
+{
+	float Fi_m = 0.0f;
+	float Fi_s = 0.0f;
+	float U_in = 0.0f;
+	float U_out = 0.0f;
+	float mag_B = 0.0f;
+	float mag_H = 0.0f;
+	float U_gap = 0.0f;
+	float U_base = 0.0f;
+	float mag_B_base = 0.0f;
+	float mag_H_base = 0.0f;
+} circle;
 
 class mag_model
 {
     public:
         virtual void init_suspension() = 0;
-        virtual bool calculate() = 0;
-};
 
-// Function to return random value in the given range.
-float random_from(std::pair<float,float> in_range)
-{
-    //TODO:
-    return (in_range.first + in_range.second)/2;
-}
-
-// need to represent the cof values for every suspension
-typedef struct 
-{
-    float k_e = 0.0f;
-    float k_m = 0.0f;
-    float k_mm = 0.0f;
-    float k_x = 0.0f;
-    float k_h = 0.0f;
-    float k_delta = 0.0f;
-    float k_p = 0.0f;
-    float B_air = 0.0f;
-} cof_pack;
-
-// This model used to initialize the magnetic suspension via size coeff.
-class ratio_model : public mag_model
-{
-    public:
-        ratio_model(float P_vagon, float sus_count) 
-            : P_v(P_vagon)
-              , n(sus_count) {}
-        ~ratio_model() = default;
-
-    public:
-        virtual void init_suspension() override
+        virtual bool is_initialized() const 
         {
-            cof_pack cpack;
-            cpack.k_e = random_from(range_k_e);
+            if (!m_susp) return false;
 
-            mag_suspension susp;
-            susp.set_P_e(P_v*cpack.k_e/n);
+            if (!m_curve) return false;
 
-            cpack.B_air = random_from(range_B_air);
-            auto S_m = myu_0*susp.get_P_e()/(cpack.B_air*cpack.B_air); // of a single polus, so divided by 2
-            
-            cpack.k_m = random_from(range_k_m);
-            susp.set_a_m(sqrt(S_m/cpack.k_m));
-            susp.set_b_m(S_m/susp.get_a_m());
-
-            cpack.k_mm = random_from(range_k_mm);
-            susp.set_l_m(cpack.k_mm*susp.get_a_m());
-
-            cpack.k_x = random_from(range_k_x);
-            auto S_x = cpack.k_x*S_m;
-            susp.set_a_x(susp.get_a_m());
-            susp.set_b_x(S_x/susp.get_a_x());
-
-            cpack.k_h = random_from(range_k_h);
-            auto S_h = cpack.k_h*S_m;
-            susp.set_b_h(S_h/susp.get_b_m());
-
-            cpack.k_delta = random_from(range_k_delta);
-            susp.set_Delta_p(cpack.k_delta*susp.get_l_m());
-            susp.set_Delta_m(0.005f);
-            auto h_p = susp.get_l_m()-susp.get_b_h()-susp.get_Delta_m()-susp.get_Delta_p();
-            susp.set_h_p(h_p);
-            cpack.k_p = random_from(range_k_p);
-            susp.set_l_p(susp.get_h_p()*cpack.k_p);
-            susp.set_l_h(susp.get_l_p()+2*(susp.get_b_m()+susp.get_Delta_m()));
-            susp.set_l_x(susp.get_l_h());
-
-            susp.set_air_gap(0.01f);
-
-
-#ifdef show_size
-            std::cout << "susp.get_P_e() = " << susp.get_P_e() << std::endl;
-            std::cout << "susp.get_a_m() = " << susp.get_a_m() << std::endl;
-            std::cout << "susp.get_b_m() = " << susp.get_b_m() << std::endl;
-            std::cout << "susp.get_l_m() = " << susp.get_l_m() << std::endl;
-            std::cout << "susp.get_b_h() = " << susp.get_b_h() << std::endl;
-            std::cout << "susp.get_l_h() = " << susp.get_l_h() << std::endl;
-            std::cout << "susp.get_a_x() = " << susp.get_a_x() << std::endl;
-            std::cout << "susp.get_b_x() = " << susp.get_b_x() << std::endl;
-            std::cout << "susp.get_l_x() = " << susp.get_l_x() << std::endl;
-            std::cout << "susp.get_air_gap() = " << susp.get_air_gap() << std::endl;
-            std::cout << "susp.get_Delta_p() = " << susp.get_Delta_p() << std::endl; 
-            std::cout << "susp.get_Delta_m() = " << susp.get_Delta_m() << std::endl; 
-            std::cout << "susp.get_l_p() = " << susp.get_l_p() << std::endl;
-            std::cout << "susp.get_h_p() = " << susp.get_h_p() << std::endl;
-#endif
+            return true;
         }
 
-        virtual bool calculate() override
+        virtual bool calculate()
         {
+            if (!is_initialized()) return false;
 
+            auto begin_dt = std::make_unique<circle>();
+            const auto S_m = m_susp->get_a_m() * m_susp->get_b_m(); 
+            begin_dt->Fi_s = m_susp->get_B_air() * S_m;
+            const auto la_gap = myu_0 * S_m / m_susp->get_air_gap();
+            begin_dt->U_gap = begin_dt->Fi_s / la_gap;
+            const auto S_x = m_susp->get_a_x() * m_susp->get_b_x();
+            begin_dt->mag_B = begin_dt->Fi_s / S_x;
+            begin_dt->mag_H = m_curve->get_H_from_B(begin_dt->mag_B);
+            begin_dt->U_in = begin_dt->mag_H * (m_susp->get_l_x() - m_susp->get_b_m());
+            begin_dt->U_out = begin_dt->U_in + 2 * begin_dt->U_gap;
+            // add to the data container
+            m_data.push_back(std::move(begin_dt));
+
+            const auto contures = std::max(m_contures, static_cast<size_t>(1));
+            const auto height = m_susp->get_l_m() - m_susp->get_b_h();
+            const auto la_m = myu_0 * ((m_susp->get_l_m() - m_susp->get_b_h()) * m_susp->get_a_m() / contures)
+                /(m_susp->get_l_h() - 2 * m_susp->get_b_m());
+
+
+            for (size_t i = 1; i < m_contures + 1; ++i) // calculating contures stuff
+            {
+                // create new contures data
+                auto dt = std::make_unique<circle>();
+                dt->Fi_m = m_data[i-1]->U_out * la_m;
+                dt->Fi_s = m_data[i-1]->Fi_s + m_data[i-1]->Fi_m;
+                dt->mag_B = dt->Fi_s / S_m;
+                dt->mag_H = m_curve->get_H_from_B(dt->mag_B);
+                dt->U_in = dt->mag_H * height / contures;
+                dt->U_out = m_data[i - 1]->U_out + 2 * dt->U_in;
+                // push data to the list
+                m_data.push_back(std::move(dt));
+            }
+
+            // finally count base data
+            auto end_dt = std::make_unique<circle>();
+            end_dt->Fi_s = m_data.back()->Fi_s + m_data.back()->Fi_m;
+            end_dt->mag_B = end_dt->Fi_s / S_m;
+            end_dt->mag_H = m_curve->get_H_from_B(end_dt->mag_B);
+
+            if (m_contures == 0)
+            {
+                end_dt->U_in = end_dt->mag_H * height / contures;
+            }
+            else
+                end_dt->U_in = 0;
+
+            // calculate base bulk stuff
+            const auto S_h = m_susp->get_a_m() * m_susp->get_b_h();
+            end_dt->mag_B_base = end_dt->Fi_s / S_h;
+            end_dt->mag_H_base = m_curve->get_value_X(end_dt->mag_B_base);
+            end_dt->U_base = end_dt->mag_H_base * (m_susp->get_l_h() - m_susp->get_b_m());
+
+            // magnetic force
+            end_dt->U_out = m_data.back()->U_out + end_dt->U_base + 2 * end_dt->U_in;
+
+            // push data to the list
+            m_data.push_back(std::move(end_dt));
             return false;
         }
 
     private:
-        float P_v = 0.0f;
-        float n = 0.0f;
+        size_t m_contures = 50;
 
-        using frange = std::pair<float,float>;
-
-        frange range_k_e = {1.2f, 1.5f};
-        frange range_k_m = {1.0f, 2.0f};
-        frange range_k_mm = {2.0f, 3.0f};
-        frange range_k_x = {0.6f, 1.0f};
-        frange range_k_h = {1.0f, 1.2f};
-        frange range_k_delta = {0.05f, 0.1f};
-        frange range_k_p = {2.0f, 3.0f};
-        frange range_B_air = {0.6f, 1.0f};
+    protected:
+        std::vector<std::unique_ptr<circle>> m_data;
+        std::unique_ptr<mag_suspension > m_susp;
+        std::unique_ptr<Curve_BH> m_curve;
 };
 
+#endif //MAG_MODEL

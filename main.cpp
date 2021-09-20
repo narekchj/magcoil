@@ -1,5 +1,5 @@
 
-#include "mag_model.hpp"
+#include "ratio_mag_model.hpp"
 
 int main()
 {

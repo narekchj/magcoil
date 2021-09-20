@@ -1,6 +1,9 @@
 #ifndef _MAG_SUSPENSION_
 #define _MAG_SUSPENSION_
 
+inline const float PI = 3.14f;
+inline const float myu_0 = 4 * PI * 1E-7;
+
 #define mag_attribute(x) \
     private: \
     float m_##x = 0.0f; \
@@ -19,20 +22,21 @@ class mag_suspension
         ~mag_suspension() = default;
 
         // Set of the main params which values need to be set.
-        mag_attribute(P_e);
-        mag_attribute(a_m);
-        mag_attribute(b_m);
-        mag_attribute(l_m);
-        mag_attribute(b_h);
-        mag_attribute(l_h);
-        mag_attribute(a_x);
-        mag_attribute(b_x);
-        mag_attribute(l_x);
-        mag_attribute(air_gap); // gap represents δ
-        mag_attribute(Delta_p); 
-        mag_attribute(Delta_m); 
-        mag_attribute(l_p);
-        mag_attribute(h_p);
+        mag_attribute(P_e)
+        mag_attribute(a_m)
+        mag_attribute(b_m)
+        mag_attribute(l_m)
+        mag_attribute(b_h)
+        mag_attribute(l_h)
+        mag_attribute(a_x)
+        mag_attribute(b_x)
+        mag_attribute(l_x)
+        mag_attribute(air_gap) // gap represents δ
+        mag_attribute(B_air) // gap induction
+        mag_attribute(Delta_p) 
+        mag_attribute(Delta_m) 
+        mag_attribute(l_p)
+        mag_attribute(h_p)
 };
 
 #endif //_MAG_SUSPENSION_

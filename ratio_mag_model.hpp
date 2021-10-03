@@ -10,15 +10,14 @@
 #define show_size
 
 // Function to return random value in the given range.
-float random_from(std::pair<float,float> in_range)
+float random_from(std::pair<float,float> in_range, const int precision = 100)
 {
     static std::random_device rd = {};
     static auto mtgen = std::mt19937{rd()};
-    auto md = std::uniform_real_distribution<>{in_range.first, in_range.second};
+    auto md = std::uniform_int_distribution<>{0, precision};
+    auto random_val = in_range.first + (in_range.second - in_range.first) / (float)precision * (float)md(mtgen);
 
-    auto random_val = md(mtgen);
     std::cout << in_range.first <<" -- "<< in_range.second <<" : " << random_val << std::endl;
-
     return random_val;
 }
 
@@ -111,13 +110,13 @@ class ratio_model : public mag_model
 
         using frange = std::pair<float,float>;
 
-        frange range_k_e = {1.0f, 1.0f};
+        frange range_k_e = {1.0f, 1.5f};
         frange range_k_m = {1.0f, 1.0f};
         frange range_k_mm = {2.0f, 3.0f};
-        frange range_k_x = {1.0f, 1.0f};
+        frange range_k_x = {0.5f, 1.0f};
         frange range_k_h = {1.0f, 1.2f};
         frange range_k_delta = {0.05f, 0.1f};
-        frange range_k_p = {1.0f, 2.0f};
-        frange range_B_air = {0.6f, 1.0f};
+        frange range_k_p = {1.0f, 1.1f};
+        frange range_B_air = {1.0f, 1.2f};
 };
 #endif //RATIO_MAG_MODEL

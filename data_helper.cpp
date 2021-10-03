@@ -138,34 +138,34 @@ void data_helper::init_temp_heat()
 
 float data_helper::get_isolation(float diam) const 
 {
-	if (diam >= 0.05 && diam <= 0.09)
+	if (diam >= 0.05 && diam < 0.1)
 		return 0.07;
 
-	if (diam >= 0.1 && diam <= 0.19)
+	if (diam >= 0.1 && diam < 0.2)
 		return 0.075;
 
-	if (diam >= 0.2 && diam <= 0.25)
+	if (diam >= 0.2 && diam < 0.27)
 		return 0.09;
 
-	if (diam >= 0.27 && diam <= 0.29)
+	if (diam >= 0.27 && diam < 0.31)
 		return 0.1;
 
-	if (diam >= 0.31 && diam <= 0.35)
+	if (diam >= 0.31 && diam < 0.38)
 		return 0.105;
 
-	if (diam >= 0.38 && diam <= 0.49)
+	if (diam >= 0.38 && diam <= 0.51)
 		return 0.11;
 
-	if (diam >= 0.51 && diam <= 0.69)
+	if (diam >= 0.51 && diam <= 0.72)
 		return 0.115;
 
-	if (diam >= 0.72 && diam <= 0.96)
+	if (diam >= 0.72 && diam < 1)
 		return 0.125;
 
-	if (diam >= 1 && diam <= 1.45)
+	if (diam >= 1 && diam < 1.5)
 		return 0.135;
 
-	if (diam >= 1.5 && diam <= 2.1)
+	if (diam >= 1.5 && diam < 2.26)
 		return 0.155;
 
 	if (diam >= 2.26 && diam <= 5.2)

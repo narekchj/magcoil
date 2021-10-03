@@ -20,8 +20,50 @@ typedef struct
 	float mag_H_base = 0.0f;
 } circle;
 
+typedef struct
+{
+    float a_m;
+    float b_m;
+    float l_m;
+    float b_h;
+    float l_h;
+    float b_x;
+    float P_e;
+    float air_gap; 
+    float B_air;
+    float Delta_p; 
+    float Delta_m; 
+} susp_base_sizes;
+
 class mag_model
 {
+    protected:
+        void init_suspension_base(const susp_base_sizes sz)
+        {
+            if (!m_susp) return;
+
+            m_susp->set_a_m(sz.a_m);
+            m_susp->set_b_m(sz.b_m);
+            m_susp->set_l_m(sz.l_m);
+            m_susp->set_b_h(sz.b_h);
+            m_susp->set_l_h(sz.l_h);
+            m_susp->set_b_x(sz.b_x);
+            m_susp->set_a_x(sz.a_m);
+            m_susp->set_l_x(sz.l_h);
+            m_susp->set_Delta_p(sz.Delta_p);
+            m_susp->set_Delta_m(sz.Delta_m);
+            m_susp->set_B_air(sz.B_air);
+            m_susp->set_air_gap(sz.air_gap);
+            m_susp->set_P_e(sz.P_e);
+
+            //calculate rest stuff
+            const auto h_p = m_susp->get_l_m() - m_susp->get_b_h() - m_susp->get_Delta_m() - m_susp->get_Delta_p();
+            m_susp->set_h_p(h_p);
+
+            const auto l_p = m_susp->get_l_h() - 2 * (m_susp->get_b_m() + m_susp->get_Delta_m());
+            m_susp->set_l_p(l_p);
+        }
+
     public:
         virtual void init_suspension() = 0;
 
@@ -188,7 +230,7 @@ class mag_model
         size_t m_contures = 30;
 
     protected:
-        std::vector<std::unique_ptr<circle>> m_data;
+        std::vector<std::unique_ptr<circle>> m_data; // TODO: change to the data layers to be passed to the model.
         std::unique_ptr<mag_suspension > m_susp;
         std::unique_ptr<Curve_BH> m_curve;
 };

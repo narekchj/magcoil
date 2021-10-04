@@ -110,13 +110,13 @@ class ratio_model : public mag_model
 
         using frange = std::pair<float,float>;
 
-        frange range_k_e = {1.0f, 1.5f};
-        frange range_k_m = {1.0f, 1.0f};
+        frange range_k_e = {1.2f, 1.5f};
+        frange range_k_m = {1.0f, 2.0f};
         frange range_k_mm = {2.0f, 3.0f};
-        frange range_k_x = {0.5f, 1.0f};
+        frange range_k_x = {0.6f, 1.0f};
         frange range_k_h = {1.0f, 1.2f};
         frange range_k_delta = {0.05f, 0.1f};
-        frange range_k_p = {1.0f, 1.1f};
-        frange range_B_air = {1.0f, 1.2f};
+        frange range_k_p = {2.0f, 3.0f};
+        frange range_B_air = {0.6f, 1.2f};
 };
 #endif //RATIO_MAG_MODEL

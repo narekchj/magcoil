@@ -10,7 +10,7 @@
 //#define show_size
 
 // Function to return random value in the given range.
-float random_from(const std::pair<float,float>& in_range, const int precision = 10)
+float random_from(const std::pair<float,float>& in_range, const int precision = 100)
 {
     static std::random_device rd = {};
     static auto mtgen = std::mt19937{rd()};

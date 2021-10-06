@@ -21,6 +21,7 @@ int main()
         std::cout<< std::string(30, '-') << std::endl;
         cof_pack cpack = rm.get_cofs();
 
+        std::cout << "Input" << std::endl;
         print_range(ratio_model::range_k_e, cpack.k_e, "Kէ");
         print_range(ratio_model::range_B_air, cpack.B_air, "Bδ");
         print_range(ratio_model::range_k_m, cpack.k_m, "Kմ");
@@ -30,6 +31,7 @@ int main()
         print_range(ratio_model::range_k_delta, cpack.k_delta, "KΔ");
         print_range(ratio_model::range_k_p, cpack.k_p, "Kփ");
 
+        std::cout << "Output" << std::endl;
         std::cout << "F = " << F << std::endl;
         std::cout << "θփ = " << temp << std::endl;
     }

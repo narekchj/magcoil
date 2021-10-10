@@ -1,8 +1,10 @@
 #ifndef _MAG_SUSPENSION_
 #define _MAG_SUSPENSION_
 
-inline const float PI = 3.14f;
-inline const float myu_0 = 4 * PI * 1E-7;
+inline const auto PI = 3.14f;
+inline const auto myu_0 = 4 * PI * 1E-7;
+inline const auto Ro20 = 0.0175f;
+inline const auto max_contures = (size_t)1000; //TODO
 
 #define mag_attribute(x) \
     private: \

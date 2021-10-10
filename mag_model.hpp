@@ -5,35 +5,8 @@
 #include "mag_suspension.hpp"
 #include "curve.hpp"
 #include "data_helper.hpp"
+#include "susp_data.hpp"
 
-typedef struct
-{
-	float Fi_m = 0.0f;
-	float Fi_s = 0.0f;
-	float U_in = 0.0f;
-	float U_out = 0.0f;
-	float mag_B = 0.0f;
-	float mag_H = 0.0f;
-	float U_gap = 0.0f;
-	float U_base = 0.0f;
-	float mag_B_base = 0.0f;
-	float mag_H_base = 0.0f;
-} circle;
-
-typedef struct
-{
-    float a_m;
-    float b_m;
-    float l_m;
-    float b_h;
-    float l_h;
-    float b_x;
-    float P_e;
-    float air_gap; 
-    float B_air;
-    float Delta_p; 
-    float Delta_m; 
-} susp_base_sizes;
 
 class mag_model
 {
@@ -76,17 +49,17 @@ class mag_model
             return true;
         }
 
-        virtual float calculate_direct(const float precision)
+        virtual void calculate_direct(direct_data_t& data, const float precision)
         {
-            if (!is_initialized()) return false;
+            if (!is_initialized()) return;
 
-            m_data.clear();
+            data.clear();
             size_t l_contures = 0;
 
-            while(true)
+            while(l_contures < max_contures)
             {
                 // creates data for this calculation
-                c_data_t c_data = {};
+                susp_out_data::circle_t c_data = {};
                 auto begin_dt = std::make_unique<circle>();
 
                 const auto S_m = m_susp->get_a_m() * m_susp->get_b_m(); 
@@ -103,9 +76,8 @@ class mag_model
 
                 const auto contures = std::max(l_contures, static_cast<size_t>(1));
                 const auto height = m_susp->get_l_m() - m_susp->get_b_h();
-                const auto la_m = myu_0 * ((m_susp->get_l_m() - m_susp->get_b_h()) * m_susp->get_a_m() / contures)
-                    /(m_susp->get_l_h() - 2 * m_susp->get_b_m());
-
+                const auto la_m = myu_0 * ((m_susp->get_l_m() - m_susp->get_b_h()) * m_susp->get_a_m() / contures) 
+                    / (m_susp->get_l_h() - 2 * m_susp->get_b_m());
 
                 for (size_t i = 1; i < l_contures + 1; ++i) // calculating contures stuff
                 {
@@ -141,108 +113,133 @@ class mag_model
                 c_data.push_back(std::move(end_dt));
 
                 // calculate diff of the previous 2 calculations
-                const auto prev_U_out = (m_data.size()) ? m_data.back().back()->U_out : c_data.back()->U_out;
+                const auto prev_U_out = (data.size()) ? data.back().back()->U_out : c_data.back()->U_out;
                 const auto diff = (c_data.back()->U_out - prev_U_out) / prev_U_out * 100.0f;
 
-                m_data.push_back(std::move(c_data));
+                data.push_back(std::move(c_data));
 
                 if (diff && diff <= precision) // we don't need calculation anymore
                     break;
 
                 ++l_contures;
             }
-
-    //        std::cout << "Contures = " << l_contures << std::endl;
-
-            // return the F_mshu
-            return m_data.back().back()->U_out;
         }
 
-        std::pair<float,float> calculate_reverse(const float F_mshu, const float precision)
+        void calculate_reverse(susp_out_data& data, const float precision)
         {
-            auto B_value = 0.01f;
+            // TODO: change this algorithm
             const auto B_step = 0.01f;
-            auto diff_F = 0.0f;
-            auto res_F = 0.0f;
-            for (; ((diff_F == 0 || diff_F > 1.0f) && B_value < 2.0f);
+            // we here then we have valid value
+            const auto F_mshu = get_F(data.m_direct_data).value();
+            
+            for (auto diff_F = 0.0f, B_value = 0.01f;
+                    ((diff_F == 0 || diff_F > 1.0f) && B_value < 2.0f);
                     B_value += B_step)
             {
+                data.m_reverse_B = B_value;
                 m_susp->set_B_air(B_value);
-                res_F = calculate_direct(precision);
+                calculate_direct(data.m_reverse_data, precision);
+               
+                const auto F_opt = get_F(data.m_reverse_data);
+                const auto res_F = F_opt.has_value() ? F_opt.value() : 0.0f;
                 diff_F = (F_mshu - res_F) / F_mshu * 100;
             }
-
-            return {B_value, res_F};
         }
 
-        float calculate_coil(float F_mshu, float U, float k_fill, float allow_temp)
+        void calculate_coil(susp_out_data& data)
         {
              const auto dt_c = 1000 * m_susp->get_Delta_m();
-             //std::cout <<"isolation = "<< dt_c << std::endl;
 
-             // get sizes
              const auto a_p = 1000 * m_susp->get_a_m() + 2 * dt_c; //mm 
-             //std::cout << "a_p = " << a_p << std::endl;
+             data.coil_out.a_p = a_p;
 
              const auto b_p = 1000 * m_susp->get_b_h() + 2 * dt_c; //mm
-             //std::cout << "b_p = " << b_p << std::endl;
+             data.coil_out.b_p = b_p;
 
              const auto h_p = 1000 * m_susp->get_h_p(); //mm
-             //std::cout << "h_p = " << h_p << std::endl;
 
              const auto l_m = 2 * (a_p + b_p + 2 * h_p) / 1000; //m
-             //std::cout << "l_mm = " << l_m << std::endl;
+             data.coil_out.l_m = l_m;
 
-             const auto RO20 = 0.0175f;
-             const auto ROt = RO20 * (1.0f + 0.0039f * (allow_temp - 20.0f)); // allow temp is 160
-             //std::cout << "R0t = " << ROt << std::endl;
+             const auto Rot = Ro20 * (1.0f + 0.0039f * (data.coil_in.T_allow - 20.0f)); 
+             data.coil_out.Rot = Rot;
 
-             auto diam = sqrt((4 * F_mshu * ROt * l_m) / (PI * U));
-             //std::cout << "diam is = " << diam << std::endl;
-
+             const auto F_mshu = get_F(data.m_reverse_data).value();
+             auto diam = sqrt((4.0f * F_mshu * Rot * l_m) / (PI * data.coil_in.U));
              data_helper::db_pair val = data_helper::get_inst().get_wire_diam(diam);
              diam = val.first;
-             //std::cout << "diam is = " << diam << std::endl;
+             data.coil_out.D_wire = diam;
 
              // here we need get near diameter and area
              const auto sgm_isol = data_helper::get_inst().get_isolation(diam);
-             //std::cout << "isol = " << sgm_isol << std::endl;
+             data.coil_out.isol = sgm_isol;
 
              const auto l_p = 1000 * m_susp->get_l_p(); //mm
-             //std::cout << "l_p = " << l_p << std::endl;
 
-             const auto w_coil = (4 * k_fill * l_p * h_p) / (PI * pow((diam + sgm_isol), 2.0));
-             //std::cout << "coil turns = " << w_coil << std::endl;
+             const auto w_coil = (4 * data.coil_in.k_fill * l_p * h_p) / (PI * pow((diam + sgm_isol), 2.0));
+             data.coil_out.W = w_coil;
 
              const auto S_wire = val.second;
-             //std::cout << "s_wire = " << S_wire << std::endl;
+             data.coil_out.S_wire = S_wire;
 
-             const auto r_coil = ROt * (l_m * w_coil) / S_wire;
-             //std::cout << "r_coil = " << r_coil << std::endl;
+             const auto r_coil = Rot * (l_m * w_coil) / S_wire;
+             data.coil_out.R = r_coil;
 
-             const auto I = U / r_coil;
-             //std::cout << "I = " << I << std::endl;
+             const auto I = data.coil_in.U / r_coil;
+             data.coil_out.I = I;
+
              const auto power = pow(I, 2) * r_coil;	
-             //std::cout << "P = " << power << std::endl;
+             data.coil_out.P = power;
              
-             [[maybe_unused]]const auto j = I / S_wire;
-             //std::cout << "j = " << j << std::endl;
+             const auto j = I / S_wire;
+             data.coil_out.j = j;
 
              const auto A_p = a_p + 2 * h_p; //mm
-             const auto B_p = b_p + 2 * h_p; //mm
-             const auto S_cool = 2 * (A_p + B_p) * l_p;
-             //std::cout << "S_cool = " << S_cool << std::endl;
-             const auto heat_k = data_helper::get_inst().get_heat_cf(160).second;
-             //std::cout << "heat_k = " << heat_k << std::endl;
-             const auto temp = power / (heat_k * S_cool);
+             data.coil_out.A_p = A_p;
 
-             return temp;
+             const auto B_p = b_p + 2 * h_p; //mm
+             data.coil_out.B_p = B_p;
+
+             const auto S_cool = 2 * (A_p + B_p) * l_p;
+             data.coil_out.S_cool = S_cool;
+
+             const auto heat_k = data_helper::get_inst().get_heat_cf(data.coil_in.T_allow).second;
+             const auto temp = power / (heat_k * S_cool);
+             data.coil_out.T = temp;
+
+             const auto wire_length = l_p * (std::pow(A_p, 2) - std::pow(a_p, 2))
+                 / 4 * std::pow(diam, 2);
+             data.coil_out.L_wire = wire_length;
+        }
+
+        virtual float calculate_price(const float wire_length) const // TODO
+        {
+            const auto weight = wire_length / 1000000.0f * 10.0f; //TODO: add the table of the psdkt weight
+
+            const auto usd_per_kg = 10.0f;
+
+            const auto wire_price = usd_per_kg * weight;
+            const auto coil_price = wire_price + 0.01f * wire_price; //TODO: 1 percent for isolation
+
+            //calculate bulk price
+            const auto bulk_vol = 2 * m_susp->get_a_m() * m_susp->get_b_m() * m_susp->get_l_m()
+                + (m_susp->get_l_h() - 2 * m_susp->get_b_m()) * m_susp->get_a_m() * m_susp->get_b_h();
+
+            const auto Ro_steel_10 = 7856.0f;
+
+            const auto bulk_weight = bulk_vol * Ro_steel_10;
+//            printf("bulk weight %f kg\n", bulk_weight);
+
+            const auto usd_per_steel_kg = 0.7f;
+
+            const auto bulk_price = bulk_weight * usd_per_steel_kg;
+
+            // price of the suspension
+            return bulk_price + coil_price;
         }
 
     protected:
-        using c_data_t = std::vector<std::unique_ptr<circle>>;
-        std::vector<c_data_t> m_data; // TODO: change to the data layers to be passed to the model.
-        std::unique_ptr<mag_suspension > m_susp;
+        std::unique_ptr<mag_suspension > m_susp; // TODO: review this as well
         std::unique_ptr<Curve_BH> m_curve;
 };
 

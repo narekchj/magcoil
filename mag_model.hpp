@@ -42,6 +42,7 @@ class mag_model
 
         virtual bool is_initialized() const 
         {
+            // TODO: review check mechanisms.
             if (!m_susp) return false;
 
             if (!m_curve) return false;
@@ -49,104 +50,34 @@ class mag_model
             return true;
         }
 
-        virtual void calculate_direct(direct_data_t& data, const float precision)
+        virtual void calculate_direct(susp_data& data)
         {
-            if (!is_initialized()) return;
-
-            data.clear();
-            size_t l_contures = 0;
-
-            while(l_contures < max_contures)
-            {
-                // creates data for this calculation
-                susp_out_data::circle_t c_data = {};
-                auto begin_dt = std::make_unique<circle>();
-
-                const auto S_m = m_susp->get_a_m() * m_susp->get_b_m(); 
-                begin_dt->Fi_s = m_susp->get_B_air() * S_m;
-                const auto la_gap = myu_0 * S_m / m_susp->get_air_gap();
-                begin_dt->U_gap = begin_dt->Fi_s / la_gap;
-                const auto S_x = m_susp->get_a_x() * m_susp->get_b_x();
-                begin_dt->mag_B = begin_dt->Fi_s / S_x;
-                begin_dt->mag_H = m_curve->get_H_from_B(begin_dt->mag_B);
-                begin_dt->U_in = begin_dt->mag_H * (m_susp->get_l_x() - m_susp->get_b_m());
-                begin_dt->U_out = begin_dt->U_in + 2 * begin_dt->U_gap;
-                // add to the data container
-                c_data.push_back(std::move(begin_dt));
-
-                const auto contures = std::max(l_contures, static_cast<size_t>(1));
-                const auto height = m_susp->get_l_m() - m_susp->get_b_h();
-                const auto la_m = myu_0 * ((m_susp->get_l_m() - m_susp->get_b_h()) * m_susp->get_a_m() / contures) 
-                    / (m_susp->get_l_h() - 2 * m_susp->get_b_m());
-
-                for (size_t i = 1; i < l_contures + 1; ++i) // calculating contures stuff
-                {
-                    // create new contures data
-                    auto dt = std::make_unique<circle>();
-                    dt->Fi_m = c_data[i-1]->U_out * la_m;
-                    dt->Fi_s = c_data[i-1]->Fi_s + c_data[i-1]->Fi_m;
-                    dt->mag_B = dt->Fi_s / S_m;
-                    dt->mag_H = m_curve->get_H_from_B(dt->mag_B);
-                    dt->U_in = dt->mag_H * height / contures;
-                    dt->U_out = c_data[i - 1]->U_out + 2 * dt->U_in;
-                    // push data to the list
-                    c_data.push_back(std::move(dt));
-                }
-
-                // finally count base data
-                auto end_dt = std::make_unique<circle>();
-                end_dt->Fi_s = c_data.back()->Fi_s + c_data.back()->Fi_m;
-                end_dt->mag_B = end_dt->Fi_s / S_m;
-                end_dt->mag_H = m_curve->get_H_from_B(end_dt->mag_B);
-                end_dt->U_in = (l_contures == 0) ? end_dt->mag_H * height / contures : 0;
-
-                // calculate base bulk stuff
-                const auto S_h = m_susp->get_a_m() * m_susp->get_b_h();
-                end_dt->mag_B_base = end_dt->Fi_s / S_h;
-                end_dt->mag_H_base = m_curve->get_value_X(end_dt->mag_B_base);
-                end_dt->U_base = end_dt->mag_H_base * (m_susp->get_l_h() - m_susp->get_b_m());
-
-                // magnetic force
-                end_dt->U_out = c_data.back()->U_out + end_dt->U_base + 2 * end_dt->U_in;
-
-                // push data to the list
-                c_data.push_back(std::move(end_dt));
-
-                // calculate diff of the previous 2 calculations
-                const auto prev_U_out = (data.size()) ? data.back().back()->U_out : c_data.back()->U_out;
-                const auto diff = (c_data.back()->U_out - prev_U_out) / prev_U_out * 100.0f;
-
-                data.push_back(std::move(c_data));
-
-                if (diff && diff <= precision) // we don't need calculation anymore
-                    break;
-
-                ++l_contures;
-            }
+            calculate_circle(data.dir_out.data, data.dir_in.precision);
         }
 
-        void calculate_reverse(susp_out_data& data, const float precision)
+
+        void calculate_reverse(susp_data& data)
         {
             // TODO: change this algorithm
             const auto B_step = 0.01f;
             // we here then we have valid value
-            const auto F_mshu = get_F(data.m_direct_data).value();
+            const auto F_mshu = get_F(data.dir_out.data).value();
             
             for (auto diff_F = 0.0f, B_value = 0.01f;
                     ((diff_F == 0 || diff_F > 1.0f) && B_value < 2.0f);
                     B_value += B_step)
             {
-                data.m_reverse_B = B_value;
+                data.rev_out.B = B_value;
                 m_susp->set_B_air(B_value);
-                calculate_direct(data.m_reverse_data, precision);
+                calculate_circle(data.rev_out.data, data.rev_in.precision);
                
-                const auto F_opt = get_F(data.m_reverse_data);
+                const auto F_opt = get_F(data.rev_out.data);
                 const auto res_F = F_opt.has_value() ? F_opt.value() : 0.0f;
                 diff_F = (F_mshu - res_F) / F_mshu * 100;
             }
         }
 
-        void calculate_coil(susp_out_data& data)
+        void calculate_coil(susp_data& data)
         {
              const auto dt_c = 1000 * m_susp->get_Delta_m();
 
@@ -164,7 +95,7 @@ class mag_model
              const auto Rot = Ro20 * (1.0f + 0.0039f * (data.coil_in.T_allow - 20.0f)); 
              data.coil_out.Rot = Rot;
 
-             const auto F_mshu = get_F(data.m_reverse_data).value();
+             const auto F_mshu = get_F(data.rev_out.data).value();
              auto diam = sqrt((4.0f * F_mshu * Rot * l_m) / (PI * data.coil_in.U));
              data_helper::db_pair val = data_helper::get_inst().get_wire_diam(diam);
              diam = val.first;
@@ -228,7 +159,6 @@ class mag_model
             const auto Ro_steel_10 = 7856.0f;
 
             const auto bulk_weight = bulk_vol * Ro_steel_10;
-//            printf("bulk weight %f kg\n", bulk_weight);
 
             const auto usd_per_steel_kg = 0.7f;
 
@@ -241,6 +171,83 @@ class mag_model
     protected:
         std::unique_ptr<mag_suspension > m_susp; // TODO: review this as well
         std::unique_ptr<Curve_BH> m_curve;
+
+    private:
+        void calculate_circle(circles_t& data, const float precision)
+        {
+            if (!is_initialized()) return;
+
+            data.clear();
+            size_t l_contures = 0;
+
+            while(l_contures < max_contures)
+            {
+                // creates data for this calculation
+                susp_data::circle_t c_data = {};
+                auto begin_dt = std::make_unique<susp_data::circle>();
+
+                const auto S_m = m_susp->get_a_m() * m_susp->get_b_m(); 
+                begin_dt->Fi_s = m_susp->get_B_air() * S_m;
+                const auto la_gap = myu_0 * S_m / m_susp->get_air_gap();
+                begin_dt->U_gap = begin_dt->Fi_s / la_gap;
+                const auto S_x = m_susp->get_a_x() * m_susp->get_b_x();
+                begin_dt->mag_B = begin_dt->Fi_s / S_x;
+                begin_dt->mag_H = m_curve->get_H_from_B(begin_dt->mag_B);
+                begin_dt->U_in = begin_dt->mag_H * (m_susp->get_l_x() - m_susp->get_b_m());
+                begin_dt->U_out = begin_dt->U_in + 2 * begin_dt->U_gap;
+                // add to the data container
+                c_data.push_back(std::move(begin_dt));
+
+                const auto contures = std::max(l_contures, static_cast<size_t>(1));
+                const auto height = m_susp->get_l_m() - m_susp->get_b_h();
+                const auto la_m = myu_0 * ((m_susp->get_l_m() - m_susp->get_b_h()) * m_susp->get_a_m() / contures) 
+                    / (m_susp->get_l_h() - 2 * m_susp->get_b_m());
+
+                for (size_t i = 1; i < l_contures + 1; ++i) // calculating contures stuff
+                {
+                    // create new contures data
+                    auto dt = std::make_unique<susp_data::circle>();
+                    dt->Fi_m = c_data[i-1]->U_out * la_m;
+                    dt->Fi_s = c_data[i-1]->Fi_s + c_data[i-1]->Fi_m;
+                    dt->mag_B = dt->Fi_s / S_m;
+                    dt->mag_H = m_curve->get_H_from_B(dt->mag_B);
+                    dt->U_in = dt->mag_H * height / contures;
+                    dt->U_out = c_data[i - 1]->U_out + 2 * dt->U_in;
+                    // push data to the list
+                    c_data.push_back(std::move(dt));
+                }
+
+                // finally count base data
+                auto end_dt = std::make_unique<susp_data::circle>();
+                end_dt->Fi_s = c_data.back()->Fi_s + c_data.back()->Fi_m;
+                end_dt->mag_B = end_dt->Fi_s / S_m;
+                end_dt->mag_H = m_curve->get_H_from_B(end_dt->mag_B);
+                end_dt->U_in = (l_contures == 0) ? end_dt->mag_H * height / contures : 0;
+
+                // calculate base bulk stuff
+                const auto S_h = m_susp->get_a_m() * m_susp->get_b_h();
+                end_dt->mag_B_base = end_dt->Fi_s / S_h;
+                end_dt->mag_H_base = m_curve->get_value_X(end_dt->mag_B_base);
+                end_dt->U_base = end_dt->mag_H_base * (m_susp->get_l_h() - m_susp->get_b_m());
+
+                // magnetic force
+                end_dt->U_out = c_data.back()->U_out + end_dt->U_base + 2 * end_dt->U_in;
+
+                // push data to the list
+                c_data.push_back(std::move(end_dt));
+
+                // calculate diff of the previous 2 calculations
+                const auto prev_U_out = (data.size()) ? data.back().back()->U_out : c_data.back()->U_out;
+                const auto diff = (c_data.back()->U_out - prev_U_out) / prev_U_out * 100.0f;
+
+                data.push_back(std::move(c_data));
+
+                if (diff && diff <= precision) // we don't need calculation anymore
+                    break;
+
+                ++l_contures;
+            }
+        }
 };
 
 #endif //MAG_MODEL

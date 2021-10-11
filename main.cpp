@@ -62,33 +62,36 @@ int main()
 
     simple_model sm(sz);
 
-    const auto precision = 0.01f;
-    susp_out_data susp_data;
-    sm.calculate_direct(susp_data.m_direct_data, precision);
+    susp_data sp_data;
+    sp_data.dir_in.precision = 0.01f;
+    sp_data.rev_in.precision = 0.01f;
 
-    const auto& F_opt = get_F(susp_data.m_direct_data);
+    // Make direct calculation.
+    sm.calculate_direct(sp_data);
+
+    const auto& F_opt = get_F(sp_data.dir_out.data);
     const auto& F_val = F_opt.has_value() ? F_opt.value(): 0.0f;
 
     std::cout << "F = " << F_val << std::endl;
-    std::cout << "Contures = " << susp_data.m_direct_data.size() << std::endl;
+    std::cout << "Contures = " << sp_data.dir_out.data.size() << std::endl;
 
-    sm.calculate_reverse(susp_data, precision);
-    const auto B = susp_data.m_reverse_B;
-    const auto& F_opt_rev = get_F(susp_data.m_reverse_data);
+    sm.calculate_reverse(sp_data);
+    const auto B = sp_data.rev_out.B;
+    const auto& F_opt_rev = get_F(sp_data.rev_out.data);
     const auto F_val_rev = F_opt_rev.has_value() ? F_opt_rev.value() : 0.0f;
     std::cout.precision(3);
     std::cout << std::fixed << "B = " << B << " F = " << F_val_rev << std::endl;
 
-    susp_data.coil_in.U = 220.0f;
-    susp_data.coil_in.k_fill = 0.95f;
-    susp_data.coil_in.T_allow = 160.0f;
-    sm.calculate_coil(susp_data);
+    sp_data.coil_in.U = 220.0f;
+    sp_data.coil_in.k_fill = 0.95f;
+    sp_data.coil_in.T_allow = 160.0f;
+    sm.calculate_coil(sp_data);
 
-    std::cout << "T = " << susp_data.coil_out.T << std::endl;
-    std::cout << "L = " << susp_data.coil_out.L_wire << std::endl;
-    std::cout << "P = " << susp_data.coil_out.P << std::endl;
+    std::cout << "T = " << sp_data.coil_out.T << std::endl;
+    std::cout << "L = " << sp_data.coil_out.L_wire << std::endl;
+    std::cout << "P = " << sp_data.coil_out.P << std::endl;
 
-    std::cout << "Price = " << sm.calculate_price(susp_data.coil_out.L_wire) << std::endl;
+    std::cout << "Price = " << sm.calculate_price(sp_data.coil_out.L_wire) << std::endl;
 
 #endif
 }

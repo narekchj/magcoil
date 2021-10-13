@@ -27,7 +27,6 @@ void print_range(const std::pair<float,float>& in_range,
     std::cout << name <<" = " << rand_val << " -> ["<<in_range.first <<"-"<< in_range.second <<"]" << std::endl;
 }
 
-// need to represent the cof values for every suspension
 typedef struct 
 {
     float k_e = 0.0f;
@@ -52,73 +51,59 @@ class ratio_model : public mag_model
     public:
         cof_pack get_cofs() const { return m_cpack; }
 
-        virtual void init_suspension() override
+        virtual void init_suspension(susp_data& data) override
         {
             m_cpack = {0, 0, 0, 0, 0, 0, 0};
             m_cpack.k_e = random_from(range_k_e);
 
-            m_susp = std::make_unique<mag_suspension>();
-            m_susp->set_P_e(P_v*m_cpack.k_e/n);
+            auto susp = std::make_unique<mag_suspension>();
+            susp->set_P_e(P_v*m_cpack.k_e/n);
 
             m_cpack.B_air = random_from(range_B_air);
-            m_susp->set_B_air(m_cpack.B_air);
-            auto S_m = myu_0*m_susp->get_P_e()/std::pow(m_susp->get_B_air(), 2); // of a single polus, so divided by 2
+            susp->set_B_air(m_cpack.B_air);
+            auto S_m = myu_0*susp->get_P_e()/std::pow(susp->get_B_air(), 2); // of a single polus, so divided by 2
             
             m_cpack.k_m = random_from(range_k_m);
-            m_susp->set_a_m(sqrt(S_m/m_cpack.k_m));
-            m_susp->set_b_m(S_m/m_susp->get_a_m());
+            susp->set_a_m(sqrt(S_m/m_cpack.k_m));
+            susp->set_b_m(S_m/susp->get_a_m());
 
             m_cpack.k_mm = random_from(range_k_mm);
-            m_susp->set_l_m(m_cpack.k_mm*m_susp->get_a_m());
+            susp->set_l_m(m_cpack.k_mm*susp->get_a_m());
 
             m_cpack.k_x = random_from(range_k_x);
             auto S_x = m_cpack.k_x*S_m;
-            m_susp->set_a_x(m_susp->get_a_m());
-            m_susp->set_b_x(S_x/m_susp->get_a_x());
+            susp->set_a_x(susp->get_a_m());
+            susp->set_b_x(S_x/susp->get_a_x());
 
             m_cpack.k_h = random_from(range_k_h);
             auto S_h = m_cpack.k_h*S_m;
-            m_susp->set_b_h(S_h/m_susp->get_b_m());
+            susp->set_b_h(S_h/susp->get_b_m());
 
             m_cpack.k_delta = random_from(range_k_delta);
-            m_susp->set_Delta_p(m_cpack.k_delta*m_susp->get_l_m());
-            m_susp->set_Delta_m(0.005f);
-            auto h_p = m_susp->get_l_m()-m_susp->get_b_h()-m_susp->get_Delta_m()-m_susp->get_Delta_p();
-            m_susp->set_h_p(h_p);
+            susp->set_Delta_p(m_cpack.k_delta*susp->get_l_m());
+            susp->set_Delta_m(0.005f);
+            auto h_p = susp->get_l_m()-susp->get_b_h()-susp->get_Delta_m()-susp->get_Delta_p();
+            susp->set_h_p(h_p);
             m_cpack.k_p = random_from(range_k_p);
-            m_susp->set_l_p(m_susp->get_h_p()*m_cpack.k_p);
-            m_susp->set_l_h(m_susp->get_l_p()+2*(m_susp->get_b_m()+m_susp->get_Delta_m()));
-            m_susp->set_l_x(m_susp->get_l_h());
+            susp->set_l_p(susp->get_h_p()*m_cpack.k_p);
+            susp->set_l_h(susp->get_l_p()+2*(susp->get_b_m()+susp->get_Delta_m()));
+            susp->set_l_x(susp->get_l_h());
 
-            m_susp->set_air_gap(0.01f);
+            susp->set_air_gap(0.01f);
 
-            //finally set the steel curve to be used for calculations
-            m_curve = std::make_unique<Curve_BH>("./steel_bh/steel_10.txt");
+            data.coil_in.U = 220.0f;
+            data.coil_in.k_fill = 0.95f;
+            data.coil_in.T_allow = 160.0f;
 
-
-#ifdef show_size
-            std::cout << "m_susp->get_P_e() = " << m_susp->get_P_e() << std::endl;
-            std::cout << "m_susp->get_a_m() = " << m_susp->get_a_m() << std::endl;
-            std::cout << "m_susp->get_b_m() = " << m_susp->get_b_m() << std::endl;
-            std::cout << "m_susp->get_l_m() = " << m_susp->get_l_m() << std::endl;
-            std::cout << "m_susp->get_b_h() = " << m_susp->get_b_h() << std::endl;
-            std::cout << "m_susp->get_l_h() = " << m_susp->get_l_h() << std::endl;
-            std::cout << "m_susp->get_a_x() = " << m_susp->get_a_x() << std::endl;
-            std::cout << "m_susp->get_b_x() = " << m_susp->get_b_x() << std::endl;
-            std::cout << "m_susp->get_l_x() = " << m_susp->get_l_x() << std::endl;
-            std::cout << "m_susp->get_air_gap() = " << m_susp->get_air_gap() << std::endl;
-            std::cout << "m_susp->get_Delta_p() = " << m_susp->get_Delta_p() << std::endl; 
-            std::cout << "m_susp->get_Delta_m() = " << m_susp->get_Delta_m() << std::endl; 
-            std::cout << "m_susp->get_l_p() = " << m_susp->get_l_p() << std::endl;
-            std::cout << "m_susp->get_h_p() = " << m_susp->get_h_p() << std::endl;
-#endif
+            data.susp = std::move(susp);
+            data.curve = std::make_unique<Curve_BH>("./steel_bh/steel_10.txt");
         }
 
     private:
-        cof_pack m_cpack; 
         float P_v = 0.0f;
         float n = 0.0f;
 
+        cof_pack m_cpack;
         using frange = std::pair<float,float>;
 
     public:

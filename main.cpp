@@ -6,22 +6,19 @@
 
 int main()
 {
-#if 0
+#if 1
     ratio_model rm(200000, 20);
 
     for (size_t i = 0; i < 1000; ++i)
     {
-        rm.init_suspension();
-        const auto precision = 0.01f;
-        const auto F = rm.calculate_direct(precision);
-        const auto& [B, FF] = rm.calculate_reverse(F, precision);
-        //std::cout << "B = " << B << " F = " << FF << std::endl;
-        const auto& [temp, len] = rm.calculate_coil(FF, 220.0f, 0.95f, 160.0f);
+        susp_data sp_data;
+        rm.init_suspension(sp_data);
 
-        const auto price = rm.calculate_price(len);
+        rm.calculate_direct(sp_data);
+        rm.calculate_reverse(sp_data);
+        rm.calculate_coil(sp_data);
 
-
-        if (temp < 130 || temp > 160) continue;
+        if (sp_data.coil_out.T < 130 || sp_data.coil_out.T > 160) continue;
 
         std::cout<< std::string(30, '-') << std::endl;
         cof_pack cpack = rm.get_cofs();
@@ -37,11 +34,11 @@ int main()
         print_range(ratio_model::range_k_p, cpack.k_p, "Kփ");
 
         std::cout << "\nOutput" << std::endl;
-        std::cout << "F = " << F << "Ա" << std::endl;
-        std::cout << "θփ = " << temp << "°C" << std::endl;
-        std::cout << "Գին = " << price << "$" << std::endl;
-        std::cout << "P = " << rm.m_Power << "Վտ" << std::endl;
-    }
+        std::cout << "F = " << get_F(sp_data.dir_out.data).value() << "Ա" << std::endl;
+        std::cout << "θփ = " << sp_data.coil_out.T << "°C" << std::endl;
+        std::cout << "Գին = " << calculate_price(sp_data) << "$" << std::endl;
+        std::cout << "P = " << sp_data.coil_out.P << "Վտ" << std::endl;
+  }
 
 #else
     susp_base_sizes sz;

@@ -102,9 +102,35 @@ typedef struct
         float L_wire = 0.0f; //mm
     } coil_out;
 
+    ///
+    /// Suspension to calculate values for.
+    ///
+    std::unique_ptr<mag_suspension > susp; 
+
+    ///
+    /// Steel for the bulk representing H(B) dependency.
+    ///
+    std::unique_ptr<Curve_BH> curve;
+
 } susp_data;
 
 using circles_t = susp_data::circles_t;
+
+struct ratio_susp_data : public susp_data
+{
+    // need to represent the cof values for every suspension
+    struct 
+    {
+        float k_e = 0.0f;
+        float B_air = 0.0f;
+        float k_m = 0.0f;
+        float k_mm = 0.0f;
+        float k_x = 0.0f;
+        float k_h = 0.0f;
+        float k_delta = 0.0f;
+        float k_p = 0.0f;
+    } cpack;
+};
 
 ///
 /// Helper to access to the F from the calculation data.

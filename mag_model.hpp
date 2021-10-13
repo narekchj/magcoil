@@ -11,53 +11,57 @@
 class mag_model
 {
     protected:
-        void init_suspension_base(const susp_base_sizes sz)
+        void init_suspension_base(susp_data& data, const susp_base_sizes& sz)
         {
-            if (!m_susp) return;
+            if (!data.susp) return;
 
-            m_susp->set_a_m(sz.a_m);
-            m_susp->set_b_m(sz.b_m);
-            m_susp->set_l_m(sz.l_m);
-            m_susp->set_b_h(sz.b_h);
-            m_susp->set_l_h(sz.l_h);
-            m_susp->set_b_x(sz.b_x);
-            m_susp->set_a_x(sz.a_m);
-            m_susp->set_l_x(sz.l_h);
-            m_susp->set_Delta_p(sz.Delta_p);
-            m_susp->set_Delta_m(sz.Delta_m);
-            m_susp->set_B_air(sz.B_air);
-            m_susp->set_air_gap(sz.air_gap);
-            m_susp->set_P_e(sz.P_e);
+            data.susp->set_a_m(sz.a_m);
+            data.susp->set_b_m(sz.b_m);
+            data.susp->set_l_m(sz.l_m);
+            data.susp->set_b_h(sz.b_h);
+            data.susp->set_l_h(sz.l_h);
+            data.susp->set_b_x(sz.b_x);
+            data.susp->set_a_x(sz.a_m);
+            data.susp->set_l_x(sz.l_h);
+            data.susp->set_Delta_p(sz.Delta_p);
+            data.susp->set_Delta_m(sz.Delta_m);
+            data.susp->set_B_air(sz.B_air);
+            data.susp->set_air_gap(sz.air_gap);
+            data.susp->set_P_e(sz.P_e);
 
             //calculate rest stuff
-            const auto h_p = m_susp->get_l_m() - m_susp->get_b_h() - m_susp->get_Delta_m() - m_susp->get_Delta_p();
-            m_susp->set_h_p(h_p);
+            const auto h_p = data.susp->get_l_m() - data.susp->get_b_h() - data.susp->get_Delta_m() - data.susp->get_Delta_p();
+            data.susp->set_h_p(h_p);
 
-            const auto l_p = m_susp->get_l_h() - 2 * (m_susp->get_b_m() + m_susp->get_Delta_m());
-            m_susp->set_l_p(l_p);
+            const auto l_p = data.susp->get_l_h() - 2 * (data.susp->get_b_m() + data.susp->get_Delta_m());
+            data.susp->set_l_p(l_p);
         }
 
     public:
-        virtual void init_suspension() = 0;
+        virtual void init_suspension(susp_data& ) = 0;
 
-        virtual bool is_initialized() const 
+        virtual bool is_initialized(const susp_data& data) const 
         {
             // TODO: review check mechanisms.
-            if (!m_susp) return false;
+            if (!data.susp) return false;
 
-            if (!m_curve) return false;
+            if (!data.curve) return false;
 
             return true;
         }
 
         virtual void calculate_direct(susp_data& data)
         {
-            calculate_circle(data.dir_out.data, data.dir_in.precision);
-        }
+            if (!is_initialized(data)) return;
 
+            calculate_circle(data.dir_out.data, *data.susp,
+                    *data.curve, data.dir_in.precision);
+        }
 
         void calculate_reverse(susp_data& data)
         {
+            if (!is_initialized(data)) return;
+
             // TODO: change this algorithm
             const auto B_step = 0.01f;
             // we here then we have valid value
@@ -68,8 +72,9 @@ class mag_model
                     B_value += B_step)
             {
                 data.rev_out.B = B_value;
-                m_susp->set_B_air(B_value);
-                calculate_circle(data.rev_out.data, data.rev_in.precision);
+                data.susp->set_B_air(B_value);
+                calculate_circle(data.rev_out.data, *data.susp,
+                        *data.curve, data.rev_in.precision);
                
                 const auto F_opt = get_F(data.rev_out.data);
                 const auto res_F = F_opt.has_value() ? F_opt.value() : 0.0f;
@@ -79,15 +84,15 @@ class mag_model
 
         void calculate_coil(susp_data& data)
         {
-             const auto dt_c = 1000 * m_susp->get_Delta_m();
+             const auto dt_c = 1000 * data.susp->get_Delta_m();
 
-             const auto a_p = 1000 * m_susp->get_a_m() + 2 * dt_c; //mm 
+             const auto a_p = 1000 * data.susp->get_a_m() + 2 * dt_c; //mm 
              data.coil_out.a_p = a_p;
 
-             const auto b_p = 1000 * m_susp->get_b_h() + 2 * dt_c; //mm
+             const auto b_p = 1000 * data.susp->get_b_h() + 2 * dt_c; //mm
              data.coil_out.b_p = b_p;
 
-             const auto h_p = 1000 * m_susp->get_h_p(); //mm
+             const auto h_p = 1000 * data.susp->get_h_p(); //mm
 
              const auto l_m = 2 * (a_p + b_p + 2 * h_p) / 1000; //m
              data.coil_out.l_m = l_m;
@@ -105,7 +110,7 @@ class mag_model
              const auto sgm_isol = data_helper::get_inst().get_isolation(diam);
              data.coil_out.isol = sgm_isol;
 
-             const auto l_p = 1000 * m_susp->get_l_p(); //mm
+             const auto l_p = 1000 * data.susp->get_l_p(); //mm
 
              const auto w_coil = (4 * data.coil_in.k_fill * l_p * h_p) / (PI * pow((diam + sgm_isol), 2.0));
              data.coil_out.W = w_coil;
@@ -143,40 +148,11 @@ class mag_model
              data.coil_out.L_wire = wire_length;
         }
 
-        virtual float calculate_price(const float wire_length) const // TODO
-        {
-            const auto weight = wire_length / 1000000.0f * 10.0f; //TODO: add the table of the psdkt weight
-
-            const auto usd_per_kg = 10.0f;
-
-            const auto wire_price = usd_per_kg * weight;
-            const auto coil_price = wire_price + 0.01f * wire_price; //TODO: 1 percent for isolation
-
-            //calculate bulk price
-            const auto bulk_vol = 2 * m_susp->get_a_m() * m_susp->get_b_m() * m_susp->get_l_m()
-                + (m_susp->get_l_h() - 2 * m_susp->get_b_m()) * m_susp->get_a_m() * m_susp->get_b_h();
-
-            const auto Ro_steel_10 = 7856.0f;
-
-            const auto bulk_weight = bulk_vol * Ro_steel_10;
-
-            const auto usd_per_steel_kg = 0.7f;
-
-            const auto bulk_price = bulk_weight * usd_per_steel_kg;
-
-            // price of the suspension
-            return bulk_price + coil_price;
-        }
-
-    protected:
-        std::unique_ptr<mag_suspension > m_susp; // TODO: review this as well
-        std::unique_ptr<Curve_BH> m_curve;
-
     private:
-        void calculate_circle(circles_t& data, const float precision)
+        void calculate_circle(circles_t& data, const mag_suspension& susp,
+                const Curve_BH& curve, 
+                const float precision)
         {
-            if (!is_initialized()) return;
-
             data.clear();
             size_t l_contures = 0;
 
@@ -186,22 +162,22 @@ class mag_model
                 susp_data::circle_t c_data = {};
                 auto begin_dt = std::make_unique<susp_data::circle>();
 
-                const auto S_m = m_susp->get_a_m() * m_susp->get_b_m(); 
-                begin_dt->Fi_s = m_susp->get_B_air() * S_m;
-                const auto la_gap = myu_0 * S_m / m_susp->get_air_gap();
+                const auto S_m = susp.get_a_m() * susp.get_b_m(); 
+                begin_dt->Fi_s = susp.get_B_air() * S_m;
+                const auto la_gap = myu_0 * S_m / susp.get_air_gap();
                 begin_dt->U_gap = begin_dt->Fi_s / la_gap;
-                const auto S_x = m_susp->get_a_x() * m_susp->get_b_x();
+                const auto S_x = susp.get_a_x() * susp.get_b_x();
                 begin_dt->mag_B = begin_dt->Fi_s / S_x;
-                begin_dt->mag_H = m_curve->get_H_from_B(begin_dt->mag_B);
-                begin_dt->U_in = begin_dt->mag_H * (m_susp->get_l_x() - m_susp->get_b_m());
+                begin_dt->mag_H = curve.get_H_from_B(begin_dt->mag_B);
+                begin_dt->U_in = begin_dt->mag_H * (susp.get_l_x() - susp.get_b_m());
                 begin_dt->U_out = begin_dt->U_in + 2 * begin_dt->U_gap;
                 // add to the data container
                 c_data.push_back(std::move(begin_dt));
 
                 const auto contures = std::max(l_contures, static_cast<size_t>(1));
-                const auto height = m_susp->get_l_m() - m_susp->get_b_h();
-                const auto la_m = myu_0 * ((m_susp->get_l_m() - m_susp->get_b_h()) * m_susp->get_a_m() / contures) 
-                    / (m_susp->get_l_h() - 2 * m_susp->get_b_m());
+                const auto height = susp.get_l_m() - susp.get_b_h();
+                const auto la_m = myu_0 * ((susp.get_l_m() - susp.get_b_h()) * susp.get_a_m() / contures) 
+                    / (susp.get_l_h() - 2 * susp.get_b_m());
 
                 for (size_t i = 1; i < l_contures + 1; ++i) // calculating contures stuff
                 {
@@ -210,7 +186,7 @@ class mag_model
                     dt->Fi_m = c_data[i-1]->U_out * la_m;
                     dt->Fi_s = c_data[i-1]->Fi_s + c_data[i-1]->Fi_m;
                     dt->mag_B = dt->Fi_s / S_m;
-                    dt->mag_H = m_curve->get_H_from_B(dt->mag_B);
+                    dt->mag_H = curve.get_H_from_B(dt->mag_B);
                     dt->U_in = dt->mag_H * height / contures;
                     dt->U_out = c_data[i - 1]->U_out + 2 * dt->U_in;
                     // push data to the list
@@ -221,14 +197,14 @@ class mag_model
                 auto end_dt = std::make_unique<susp_data::circle>();
                 end_dt->Fi_s = c_data.back()->Fi_s + c_data.back()->Fi_m;
                 end_dt->mag_B = end_dt->Fi_s / S_m;
-                end_dt->mag_H = m_curve->get_H_from_B(end_dt->mag_B);
+                end_dt->mag_H = curve.get_H_from_B(end_dt->mag_B);
                 end_dt->U_in = (l_contures == 0) ? end_dt->mag_H * height / contures : 0;
 
                 // calculate base bulk stuff
-                const auto S_h = m_susp->get_a_m() * m_susp->get_b_h();
+                const auto S_h = susp.get_a_m() * susp.get_b_h();
                 end_dt->mag_B_base = end_dt->Fi_s / S_h;
-                end_dt->mag_H_base = m_curve->get_value_X(end_dt->mag_B_base);
-                end_dt->U_base = end_dt->mag_H_base * (m_susp->get_l_h() - m_susp->get_b_m());
+                end_dt->mag_H_base = curve.get_value_X(end_dt->mag_B_base);
+                end_dt->U_base = end_dt->mag_H_base * (susp.get_l_h() - susp.get_b_m());
 
                 // magnetic force
                 end_dt->U_out = c_data.back()->U_out + end_dt->U_base + 2 * end_dt->U_in;
@@ -249,5 +225,33 @@ class mag_model
             }
         }
 };
+
+///
+/// Helper to calculate wire length.
+///
+float calculate_price(const susp_data& data) // TODO
+{
+    const auto weight = data.coil_out.L_wire / 1000000.0f * 10.0f; //TODO: add the table of the psdkt weight
+
+    const auto usd_per_kg = 10.0f;
+
+    const auto wire_price = usd_per_kg * weight;
+    const auto coil_price = wire_price + 0.01f * wire_price; //TODO: 1 percent for isolation
+
+    //calculate bulk price
+    const auto bulk_vol = 2 * data.susp->get_a_m() * data.susp->get_b_m() * data.susp->get_l_m()
+        + (data.susp->get_l_h() - 2 * data.susp->get_b_m()) * data.susp->get_a_m() * data.susp->get_b_h();
+
+    const auto Ro_steel_10 = 7856.0f;
+
+    const auto bulk_weight = bulk_vol * Ro_steel_10;
+
+    const auto usd_per_steel_kg = 0.7f;
+
+    const auto bulk_price = bulk_weight * usd_per_steel_kg;
+
+    // price of the suspension
+    return bulk_price + coil_price;
+}
 
 #endif //MAG_MODEL

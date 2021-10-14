@@ -8,10 +8,11 @@
 #include "susp_data.hpp"
 
 
+template <typename T, typename = typename std::enable_if_t<std::is_base_of_v<susp_data, T>>>
 class mag_model
 {
     protected:
-        void init_suspension_base(susp_data& data, const susp_base_sizes& sz)
+        void init_suspension_base(T& data, const susp_base_sizes& sz)
         {
             if (!data.susp) return;
 
@@ -38,9 +39,9 @@ class mag_model
         }
 
     public:
-        virtual void init_suspension(susp_data& ) = 0;
+        virtual void init_suspension(T& ) = 0;
 
-        virtual bool is_initialized(const susp_data& data) const 
+        virtual bool is_initialized(const T& data) const 
         {
             // TODO: review check mechanisms.
             if (!data.susp) return false;
@@ -50,7 +51,7 @@ class mag_model
             return true;
         }
 
-        virtual void calculate_direct(susp_data& data)
+        virtual void calculate_direct(T& data)
         {
             if (!is_initialized(data)) return;
 
@@ -58,7 +59,7 @@ class mag_model
                     *data.curve, data.dir_in.precision);
         }
 
-        void calculate_reverse(susp_data& data)
+        void calculate_reverse(T& data)
         {
             if (!is_initialized(data)) return;
 
@@ -82,7 +83,7 @@ class mag_model
             }
         }
 
-        void calculate_coil(susp_data& data)
+        void calculate_coil(T& data)
         {
              const auto dt_c = 1000 * data.susp->get_Delta_m();
 
@@ -159,8 +160,8 @@ class mag_model
             while(l_contures < max_contures)
             {
                 // creates data for this calculation
-                susp_data::circle_t c_data = {};
-                auto begin_dt = std::make_unique<susp_data::circle>();
+                typename T::circle_t c_data = {};
+                auto begin_dt = std::make_unique<typename T::circle>();
 
                 const auto S_m = susp.get_a_m() * susp.get_b_m(); 
                 begin_dt->Fi_s = susp.get_B_air() * S_m;
@@ -182,7 +183,7 @@ class mag_model
                 for (size_t i = 1; i < l_contures + 1; ++i) // calculating contures stuff
                 {
                     // create new contures data
-                    auto dt = std::make_unique<susp_data::circle>();
+                    auto dt = std::make_unique<typename T::circle>();
                     dt->Fi_m = c_data[i-1]->U_out * la_m;
                     dt->Fi_s = c_data[i-1]->Fi_s + c_data[i-1]->Fi_m;
                     dt->mag_B = dt->Fi_s / S_m;
@@ -194,7 +195,7 @@ class mag_model
                 }
 
                 // finally count base data
-                auto end_dt = std::make_unique<susp_data::circle>();
+                auto end_dt = std::make_unique<typename T::circle>();
                 end_dt->Fi_s = c_data.back()->Fi_s + c_data.back()->Fi_m;
                 end_dt->mag_B = end_dt->Fi_s / S_m;
                 end_dt->mag_H = curve.get_H_from_B(end_dt->mag_B);
@@ -229,7 +230,8 @@ class mag_model
 ///
 /// Helper to calculate wire length.
 ///
-float calculate_price(const susp_data& data) // TODO
+template <typename T>
+float calculate_price(const T& data) // TODO
 {
     const auto weight = data.coil_out.L_wire / 1000000.0f * 10.0f; //TODO: add the table of the psdkt weight
 

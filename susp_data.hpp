@@ -116,6 +116,9 @@ typedef struct
 
 using circles_t = susp_data::circles_t;
 
+///
+/// Extended data type to store also coff values.
+///
 struct ratio_susp_data : public susp_data
 {
     // need to represent the cof values for every suspension

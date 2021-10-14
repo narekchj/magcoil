@@ -40,7 +40,8 @@ typedef struct
 } cof_pack;
 
 // This model used to initialize the magnetic suspension via size coeff.
-class ratio_model : public mag_model
+template <typename T>
+class ratio_model : public mag_model<T>
 {
     public:
         ratio_model(float P_vagon, float sus_count) 
@@ -49,43 +50,41 @@ class ratio_model : public mag_model
         ~ratio_model() = default;
 
     public:
-        cof_pack get_cofs() const { return m_cpack; }
-
-        virtual void init_suspension(susp_data& data) override
+        void init_suspension(T& data) override
         {
-            m_cpack = {0, 0, 0, 0, 0, 0, 0};
-            m_cpack.k_e = random_from(range_k_e);
+            data.cpack = {0, 0, 0, 0, 0, 0, 0};
+            data.cpack.k_e = random_from(range_k_e);
 
             auto susp = std::make_unique<mag_suspension>();
-            susp->set_P_e(P_v*m_cpack.k_e/n);
+            susp->set_P_e(P_v*data.cpack.k_e/n);
 
-            m_cpack.B_air = random_from(range_B_air);
-            susp->set_B_air(m_cpack.B_air);
+            data.cpack.B_air = random_from(range_B_air);
+            susp->set_B_air(data.cpack.B_air);
             auto S_m = myu_0*susp->get_P_e()/std::pow(susp->get_B_air(), 2); // of a single polus, so divided by 2
             
-            m_cpack.k_m = random_from(range_k_m);
-            susp->set_a_m(sqrt(S_m/m_cpack.k_m));
+            data.cpack.k_m = random_from(range_k_m);
+            susp->set_a_m(sqrt(S_m/data.cpack.k_m));
             susp->set_b_m(S_m/susp->get_a_m());
 
-            m_cpack.k_mm = random_from(range_k_mm);
-            susp->set_l_m(m_cpack.k_mm*susp->get_a_m());
+            data.cpack.k_mm = random_from(range_k_mm);
+            susp->set_l_m(data.cpack.k_mm*susp->get_a_m());
 
-            m_cpack.k_x = random_from(range_k_x);
-            auto S_x = m_cpack.k_x*S_m;
+            data.cpack.k_x = random_from(range_k_x);
+            auto S_x = data.cpack.k_x*S_m;
             susp->set_a_x(susp->get_a_m());
             susp->set_b_x(S_x/susp->get_a_x());
 
-            m_cpack.k_h = random_from(range_k_h);
-            auto S_h = m_cpack.k_h*S_m;
+            data.cpack.k_h = random_from(range_k_h);
+            auto S_h = data.cpack.k_h*S_m;
             susp->set_b_h(S_h/susp->get_b_m());
 
-            m_cpack.k_delta = random_from(range_k_delta);
-            susp->set_Delta_p(m_cpack.k_delta*susp->get_l_m());
+            data.cpack.k_delta = random_from(range_k_delta);
+            susp->set_Delta_p(data.cpack.k_delta*susp->get_l_m());
             susp->set_Delta_m(0.005f);
             auto h_p = susp->get_l_m()-susp->get_b_h()-susp->get_Delta_m()-susp->get_Delta_p();
             susp->set_h_p(h_p);
-            m_cpack.k_p = random_from(range_k_p);
-            susp->set_l_p(susp->get_h_p()*m_cpack.k_p);
+            data.cpack.k_p = random_from(range_k_p);
+            susp->set_l_p(susp->get_h_p()*data.cpack.k_p);
             susp->set_l_h(susp->get_l_p()+2*(susp->get_b_m()+susp->get_Delta_m()));
             susp->set_l_x(susp->get_l_h());
 
@@ -103,7 +102,6 @@ class ratio_model : public mag_model
         float P_v = 0.0f;
         float n = 0.0f;
 
-        cof_pack m_cpack;
         using frange = std::pair<float,float>;
 
     public:

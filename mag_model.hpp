@@ -2,13 +2,17 @@
 #define MAG_MODEL
 
 #include <memory>
+#include <concepts>
+
 #include "mag_suspension.hpp"
 #include "curve.hpp"
 #include "data_helper.hpp"
 #include "susp_data.hpp"
 
+template <typename T>
+concept ValidDataType = std::is_base_of_v<susp_data, T>;
 
-template <typename T, typename = typename std::enable_if_t<std::is_base_of_v<susp_data, T>>>
+template <ValidDataType T>
 class mag_model
 {
     protected:

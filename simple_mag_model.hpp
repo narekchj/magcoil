@@ -14,8 +14,7 @@ class simple_model : public mag_model<susp_data>
 
         virtual void init_suspension(susp_data& data) override
         {
-            data.susp = std::make_unique<mag_suspension>();
-            data.curve = std::make_unique<Curve_BH>("./steel_bh/steel_10.txt");
+            m_susp = std::make_shared<mag_suspension>();
         }
 };
 

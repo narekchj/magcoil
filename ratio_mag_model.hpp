@@ -20,29 +20,31 @@ float random_from(const std::pair<float,float>& in_range, const int precision = 
     return random_val;
 }
 
-void print_range(const std::pair<float,float>& in_range,
-                 const float rand_val,
-                 const std::string& name)
+///
+/// Extended data type to store also coff values.
+///
+struct ratio_susp_data : public susp_data
 {
-    std::cout << name <<" = " << rand_val << " -> ["<<in_range.first <<"-"<< in_range.second <<"]" << std::endl;
-}
-
-typedef struct 
-{
-    float k_e = 0.0f;
-    float B_air = 0.0f;
-    float k_m = 0.0f;
-    float k_mm = 0.0f;
-    float k_x = 0.0f;
-    float k_h = 0.0f;
-    float k_delta = 0.0f;
-    float k_p = 0.0f;
-} cof_pack;
+    // need to represent the cof values for every suspension
+    struct 
+    {
+        float k_e = 0.0f;
+        float B_air = 0.0f;
+        float k_m = 0.0f;
+        float k_mm = 0.0f;
+        float k_x = 0.0f;
+        float k_h = 0.0f;
+        float k_delta = 0.0f;
+        float k_p = 0.0f;
+    } cpack;
+};
 
 // This model used to initialize the magnetic suspension via size coeff.
 template <typename T>
 class ratio_model : public mag_model<T>
 {
+    using base_class = mag_model<T>;
+
     public:
         ratio_model(float P_vagon, float sus_count) 
             : P_v(P_vagon)
@@ -56,11 +58,11 @@ class ratio_model : public mag_model<T>
             data.cpack.k_e = random_from(range_k_e);
 
             auto susp = std::make_unique<mag_suspension>();
-            susp->set_P_e(P_v*data.cpack.k_e/n);
+            auto P_e = P_v*data.cpack.k_e/n;
 
             data.cpack.B_air = random_from(range_B_air);
-            susp->set_B_air(data.cpack.B_air);
-            auto S_m = myu_0*susp->get_P_e()/std::pow(susp->get_B_air(), 2); // of a single polus, so divided by 2
+            data.dir_in.B = data.cpack.B_air;
+            auto S_m = myu_0 * P_e / std::pow(data.dir_in.B, 2); // of a single polus, so divided by 2
             
             data.cpack.k_m = random_from(range_k_m);
             susp->set_a_m(sqrt(S_m/data.cpack.k_m));
@@ -94,8 +96,8 @@ class ratio_model : public mag_model<T>
             data.coil_in.k_fill = 0.95f;
             data.coil_in.T_allow = 160.0f;
 
-            data.susp = std::move(susp);
-            data.curve = std::make_unique<Curve_BH>("./steel_bh/steel_10.txt");
+            // initiated suspension for the model
+            base_class::m_susp = std::move(susp);
         }
 
     private:

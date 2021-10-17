@@ -4,6 +4,13 @@
 
 #include <string>
 
+void print_range(const std::pair<float,float>& in_range,
+                 const float rand_val,
+                 std::string_view name)
+{
+    std::cout << name <<" = " << rand_val << " -> ["<<in_range.first <<"-"<< in_range.second <<"]" << std::endl;
+}
+
 int main()
 {
 #if 0
@@ -37,7 +44,7 @@ int main()
         std::cout << "\nOutput" << std::endl;
         std::cout << "F = " << get_F(sp_data.dir_out.data).value() << "Ա" << std::endl;
         std::cout << "θփ = " << sp_data.coil_out.T << "°C" << std::endl;
-        std::cout << "Գին = " << calculate_price(sp_data) << "$" << std::endl;
+        std::cout << "Գին = " << calculate_price(sp_data, rm.get_susp()) << "$" << std::endl;
         std::cout << "P = " << sp_data.coil_out.P << "Վտ" << std::endl;
   }
 
@@ -74,7 +81,7 @@ int main()
     std::cout << "Contures = " << sp_data.dir_out.data.size() << std::endl;
 
     sm.calculate_reverse(sp_data);
-    const auto B = sp_data.rev_out.B;
+    const auto B = sp_data.rev_in.B;
     const auto& F_opt_rev = get_F(sp_data.rev_out.data);
     const auto F_val_rev = F_opt_rev.has_value() ? F_opt_rev.value() : 0.0f;
     std::cout.precision(3);
@@ -89,7 +96,7 @@ int main()
     std::cout << "L = " << sp_data.coil_out.L_wire << std::endl;
     std::cout << "P = " << sp_data.coil_out.P << std::endl;
 
-    std::cout << "Price = " << calculate_price(sp_data) << std::endl;
+    std::cout << "Price = " << calculate_price(sp_data, sm.get_susp()) << std::endl;
 
 #endif
 }

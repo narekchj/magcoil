@@ -10,7 +10,7 @@
 //#define show_size
 
 // Function to return random value in the given range.
-float random_from(const std::pair<float,float>& in_range, const int precision = 100)
+inline float random_from(const std::pair<float,float>& in_range, const int precision = 100)
 {
     static std::random_device rd = {};
     static auto mtgen = std::mt19937{rd()};
@@ -108,12 +108,12 @@ class ratio_model : public mag_model<T>
 
     public:
         static constexpr frange range_k_e = {1.0f, 1.1f};
-        static constexpr frange range_k_m = {1.0f, 1.1f};
-        static constexpr frange range_k_mm = {1.5f, 2.0f};
-        static constexpr frange range_k_x = {0.6f, 0.8f};
-        static constexpr frange range_k_h = {1.0f, 1.1f};
+        static constexpr frange range_k_m = {1.0f, 1.5f};
+        static constexpr frange range_k_mm = {1.5f, 2.5f};
+        static constexpr frange range_k_x = {0.4f, 0.6f};
+        static constexpr frange range_k_h = {1.0f, 1.5f};
         static constexpr frange range_k_delta = {0.02f, 0.05f};
-        static constexpr frange range_k_p = {1.2f, 2.0f};
+        static constexpr frange range_k_p = {2.2f, 4.0f};
         static constexpr frange range_B_air = {0.9f, 1.2f};
 };
 #endif //RATIO_MAG_MODEL

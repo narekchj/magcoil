@@ -4,20 +4,43 @@
 
 #include <string>
 
+#define print_table
+
 void print_range(const std::pair<float,float>& in_range,
                  const float rand_val,
                  std::string_view name)
 {
+#ifndef print_table
     std::cout << name <<" = " << rand_val << " -> ["<<in_range.first <<"-"<< in_range.second <<"]" << std::endl;
+#else
+    std::cout << rand_val << "\t";
+#endif
 }
 
 int main()
 {
-#if 0
+#if 1
     using ratio_model_t = ratio_model<ratio_susp_data>;
     ratio_model_t rm(200000, 20);
 
     ratio_susp_data sp_data;
+
+#ifdef print_table
+    std::cout << "Kէ" <<"\t"
+        <<"Bδ" <<"\t"
+        <<"Kմ" <<"\t"
+        <<"Kմմ" <<"\t"
+        <<"Kխ" <<"\t"
+        <<"Kհ" <<"\t"
+        <<"KΔ" <<"\t"
+        <<"Kփ" <<"\t"
+        <<"F" <<"\t"
+        <<"θփ" <<"\t"
+        <<"Գին" <<"\t"
+        <<"P" << std::endl;
+#endif
+        
+
     for (size_t i = 0; i < 1000; ++i)
     {
         rm.init_suspension(sp_data);
@@ -28,9 +51,10 @@ int main()
 
         if (sp_data.coil_out.T < 130 || sp_data.coil_out.T > 160) continue;
 
-        std::cout<< std::string(30, '-') << std::endl;
         const auto& cpack = sp_data.cpack; 
 
+#ifndef print_table
+        std::cout<< std::string(30, '-') << std::endl;
         std::cout << "Input" << std::endl;
         print_range(ratio_model_t::range_k_e, cpack.k_e, "Kէ");
         print_range(ratio_model_t::range_B_air, cpack.B_air, "Bδ");
@@ -41,11 +65,28 @@ int main()
         print_range(ratio_model_t::range_k_delta, cpack.k_delta, "KΔ");
         print_range(ratio_model_t::range_k_p, cpack.k_p, "Kփ");
 
-        std::cout << "\nOutput" << std::endl;
+        std::cout << "Output" << std::endl;
         std::cout << "F = " << get_F(sp_data.dir_out.data).value() << "Ա" << std::endl;
         std::cout << "θփ = " << sp_data.coil_out.T << "°C" << std::endl;
         std::cout << "Գին = " << calculate_price(sp_data, rm.get_susp()) << "$" << std::endl;
         std::cout << "P = " << sp_data.coil_out.P << "Վտ" << std::endl;
+#else
+        print_range(ratio_model_t::range_k_e, cpack.k_e, "Kէ");
+        print_range(ratio_model_t::range_B_air, cpack.B_air, "Bδ");
+        print_range(ratio_model_t::range_k_m, cpack.k_m, "Kմ");
+        print_range(ratio_model_t::range_k_mm, cpack.k_mm, "Kմմ");
+        print_range(ratio_model_t::range_k_x, cpack.k_x, "Kխ");
+        print_range(ratio_model_t::range_k_h, cpack.k_h, "Kհ");
+        print_range(ratio_model_t::range_k_delta, cpack.k_delta, "KΔ");
+        print_range(ratio_model_t::range_k_p, cpack.k_p, "Kփ");
+        std::cout << get_F(sp_data.dir_out.data).value() 
+        <<"\t"<< sp_data.coil_out.T
+        <<"\t"<< calculate_price(sp_data, rm.get_susp())
+        <<"\t"<< sp_data.coil_out.P;
+#endif
+
+
+        std::cout << std::endl;
   }
 
 #else

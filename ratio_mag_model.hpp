@@ -57,7 +57,7 @@ class ratio_model : public mag_model<T>
             data.cpack = {0, 0, 0, 0, 0, 0, 0};
             data.cpack.k_e = random_from(range_k_e);
 
-            auto susp = std::make_unique<mag_suspension>();
+            auto susp = std::make_unique<mag_suspension>(); //TODO: put somewhere else
             auto P_e = P_v*data.cpack.k_e/n;
 
             data.cpack.B_air = random_from(range_B_air);

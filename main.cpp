@@ -1,8 +1,8 @@
+#include <string>
 
 #include "ratio_mag_model.hpp"
 #include "simple_mag_model.hpp"
-
-#include <string>
+#include "gen_optim.hpp"
 
 #define print_table
 
@@ -19,7 +19,8 @@ void print_range(const std::pair<float,float>& in_range,
 
 int main()
 {
-#if 1
+
+#if 0
     using ratio_model_t = ratio_model<ratio_susp_data>;
     ratio_model_t rm(200000, 20);
 
@@ -89,7 +90,7 @@ int main()
         std::cout << std::endl;
   }
 
-#else
+#elif 0
     susp_base_sizes sz;
     //sizes
     sz.a_m = 0.1f;
@@ -138,6 +139,12 @@ int main()
     std::cout << "P = " << sp_data.coil_out.P << std::endl;
 
     std::cout << "Price = " << calculate_price(sp_data, sm.get_susp()) << std::endl;
+#else
+
+    gen_optimizer opt;
+    opt.createInitialPopulation();
+    std::cout << "Moving to the next step\n";
+
 
 #endif
 }

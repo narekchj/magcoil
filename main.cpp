@@ -142,9 +142,7 @@ int main()
 #else
 
     gen_optimizer opt;
-    opt.createInitialPopulation();
-    std::cout << "Moving to the next step\n";
-
+    opt.runOptimization();
 
 #endif
 }

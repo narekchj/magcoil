@@ -117,7 +117,4 @@ inline std::optional<float> get_F(const circles_t& data)
 
     return {};
 }
-
-
-
 #endif // SUSP_DATA

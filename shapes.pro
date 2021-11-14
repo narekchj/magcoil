@@ -13,4 +13,5 @@ SOURCES += main.cpp \
 
 HEADERS += \
     scenemodifier.h \
-    calc_thread.h
+    calc_thread.h \
+    gen_optim.hpp

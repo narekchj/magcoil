@@ -15,18 +15,7 @@
 #include <Qt3DExtras/QPlaneMesh>
 #include <Qt3DExtras/QSphereMesh>
 #include <Qt3DExtras/QPhongMaterial>
-
-typedef struct tsizes
-{
-    std::optional<float> a = {};
-    std::optional<float> b = {};
-    std::optional<float> h = {};
-    std::optional<float> l = {};
-    std::optional<float> c = {};
-    std::optional<float> b_x = {};
-    std::optional<float> gap = {};
-    std::optional<float> h_p = {};
-} tsizes;
+#include "consts.hpp"
 
 class SceneModifier : public QObject
 {
@@ -100,6 +89,8 @@ public slots:
     }
 
     void startCalculation();
+
+    void showFinalResult(const tsizes& sz);
 
     void updateSizes(const tsizes& sz)
     {

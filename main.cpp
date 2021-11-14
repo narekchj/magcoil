@@ -99,124 +99,15 @@ int main(int argc, char **argv)
     // Set root object of the scene
     view->setRootEntity(rootEntity);
 
-#if 0
-    auto *gapLayout = new QHBoxLayout;
-    auto *gapText = new QLabel("Gap ");
-    gapLayout->addWidget(gapText);
-
-    auto *gapSlider = new QSlider(widget);
-    gapSlider->setOrientation(Qt::Horizontal);
-    gapSlider->setMinimum(0); //mm
-    gapSlider->setMaximum(100); //mm
-    gapSlider->setSingleStep(5); //mm
-    gapLayout->addWidget(gapSlider);
-    QObject::connect(gapSlider, &QAbstractSlider::valueChanged,
-            modifier, &SceneModifier::gapValChanged);
-    gapSlider->setValue(10);
-
-    vLayout->addLayout(gapLayout);
-
-    // Create control widgets
-    auto *slLayout = new QHBoxLayout;
-    auto *slText = new QLabel("Anchor ");
-    slLayout->addWidget(slText);
-
-    auto *anchorSlider = new QSlider(widget);
-    anchorSlider->setOrientation(Qt::Horizontal);
-    anchorSlider->setMinimum(10); //mm
-    anchorSlider->setMaximum(200); //mm
-    anchorSlider->setSingleStep(5); //mm
-    slLayout->addWidget(anchorSlider);
-    QObject::connect(anchorSlider, &QAbstractSlider::valueChanged,
-            modifier, &SceneModifier::anchorValChanged);
-    anchorSlider->setValue(20);
-
-    vLayout->addLayout(slLayout);
-
-    auto *aslLayout = new QHBoxLayout;
-    auto *aslText = new QLabel("a_m");
-    aslLayout->addWidget(aslText);
-    auto *aSlider = new QSlider(widget);
-    aSlider->setOrientation(Qt::Horizontal);
-    aSlider->setMinimum(10); //mm
-    aSlider->setMaximum(300); //mm
-    aSlider->setSingleStep(5); //mm
-    aslLayout->addWidget(aSlider);
-    QObject::connect(aSlider, &QAbstractSlider::valueChanged,
-            modifier, &SceneModifier::aValChanged);
-    aSlider->setValue(150);
-
-    vLayout->addLayout(aslLayout);
-
-    auto *bslLayout = new QHBoxLayout;
-    auto *bslText = new QLabel("b_m");
-    bslLayout->addWidget(bslText);
-    auto *bSlider = new QSlider(widget);
-    bSlider->setOrientation(Qt::Horizontal);
-    bSlider->setMinimum(10); //mm
-    bSlider->setMaximum(300); //mm
-    bSlider->setSingleStep(5); //mm
-    bslLayout->addWidget(bSlider);
-    QObject::connect(bSlider, &QAbstractSlider::valueChanged,
-            modifier, &SceneModifier::bValChanged);
-    bSlider->setValue(150);
-
-    vLayout->addLayout(bslLayout);
-
-    auto *cLayout = new QHBoxLayout;
-    auto *cText = new QLabel("c");
-    cLayout->addWidget(cText);
-    auto *cSlider = new QSlider(widget);
-    cSlider->setOrientation(Qt::Horizontal);
-    cSlider->setMinimum(10); //mm
-    cSlider->setMaximum(300); //mm
-    cSlider->setSingleStep(5); //mm
-    cLayout->addWidget(cSlider);
-    QObject::connect(cSlider, &QAbstractSlider::valueChanged,
-            modifier, &SceneModifier::cValChanged);
-    cSlider->setValue(150);
-    vLayout->addLayout(cLayout);
-
-    auto *hhLayout = new QHBoxLayout;
-    auto *hText = new QLabel("h");
-    hhLayout->addWidget(hText);
-    auto *hSlider = new QSlider(widget);
-    hSlider->setOrientation(Qt::Horizontal);
-    hSlider->setMinimum(100); //mm
-    hSlider->setMaximum(500); //mm
-    hSlider->setSingleStep(5); //mm
-    hhLayout->addWidget(hSlider);
-    QObject::connect(hSlider, &QAbstractSlider::valueChanged,
-            modifier, &SceneModifier::hValChanged);
-    hSlider->setValue(350);
-    vLayout->addLayout(hhLayout);
-
-    auto *lLayout = new QHBoxLayout;
-    auto *lText = new QLabel("l");
-    lLayout->addWidget(lText);
-    auto *lSlider = new QSlider(widget);
-    lSlider->setOrientation(Qt::Horizontal);
-    lSlider->setMinimum(300); //mm
-    lSlider->setMaximum(900); //mm
-    lSlider->setSingleStep(5); //mm
-    lLayout->addWidget(lSlider);
-    QObject::connect(lSlider, &QAbstractSlider::valueChanged,
-            modifier, &SceneModifier::lValChanged);
-    lSlider->setValue(450);
-    vLayout->addLayout(lLayout);
-#endif
 
     QPushButton* stBut = new QPushButton("Start");
     QObject::connect(stBut, &QPushButton::pressed,
             modifier, &SceneModifier::startCalculation);
     vLayout->addWidget(stBut);
 
-
-
     // Show window
     widget->show();
     widget->resize(1200, 800);
-//    widget->start();
 
     return app.exec();
 }

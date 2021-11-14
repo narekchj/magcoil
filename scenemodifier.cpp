@@ -3,6 +3,9 @@
 
 #include <QtCore/QDebug>
 #include <Qt3DExtras/QMetalRoughMaterial>
+#include <QDialog>
+#include <QVBoxLayout>
+#include <QTextEdit>
 #include "calc_thread.h"
 
 SceneModifier::SceneModifier(Qt3DCore::QEntity *rootEntity)
@@ -151,11 +154,26 @@ SceneModifier::SceneModifier(Qt3DCore::QEntity *rootEntity)
     updateSizes(sz);
 }
 
+void SceneModifier::showFinalResult(const tsizes& sz)
+{
+    QDialog finalRes;
+    QVBoxLayout dlLayout;
+    finalRes.setLayout(&dlLayout);
+
+    QTextEdit txEdit;
+    txEdit.setTextInteractionFlags(Qt::NoTextInteraction);
+
+    dlLayout.addWidget(&txEdit);
+
+    finalRes.show();
+    finalRes.exec();
+}
+
 void SceneModifier::startCalculation()
 {
    CalcThread* tr = new CalcThread(this);
    connect(tr, &CalcThread::resultReady, this, &SceneModifier::updateSizes);
-   //connect(tr, &CalcThread::resultReady, this, &SceneModifier::getRes);
+   connect(tr, &CalcThread::finalResult, this, &SceneModifier::showFinalResult);
    connect(tr, &CalcThread::finished, tr, &QObject::deleteLater);
 
    tr->start();

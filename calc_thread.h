@@ -19,6 +19,7 @@ class CalcThread : public QThread
 
 signals:
         void resultReady(const tsizes&);
+        void finalResult(const tsizes&);
 };
 
 #endif

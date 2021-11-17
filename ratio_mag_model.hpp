@@ -28,14 +28,14 @@ struct ratio_susp_data : public susp_data
     // need to represent the cof values for every suspension
     struct 
     {
-        float k_e = 0.0f;
-        float B_air = 0.0f;
-        float k_m = 0.0f;
-        float k_mm = 0.0f;
-        float k_x = 0.0f;
-        float k_h = 0.0f;
-        float k_delta = 0.0f;
-        float k_p = 0.0f;
+        std::optional<float> k_e;
+        std::optional<float> B_air;
+        std::optional<float> k_m;
+        std::optional<float> k_mm;
+        std::optional<float> k_x;
+        std::optional<float> k_h;
+        std::optional<float> k_delta;
+        std::optional<float> k_p;
     } cpack;
 };
 
@@ -54,39 +54,38 @@ class ratio_model : public mag_model<T>
     public:
         void init_suspension(T& data) override
         {
-            data.cpack = {0, 0, 0, 0, 0, 0, 0};
-            data.cpack.k_e = random_from(range_k_e);
+            if (!data.cpack.k_e) data.cpack.k_e = random_from(range_k_e);
 
             auto susp = std::make_unique<mag_suspension>(); //TODO: put somewhere else
-            auto P_e = P_v*data.cpack.k_e/n;
+            auto P_e = P_v*data.cpack.k_e.value()/n;
 
-            data.cpack.B_air = random_from(range_B_air);
-            data.dir_in.B = data.cpack.B_air;
+            if (!data.cpack.B_air) data.cpack.B_air = random_from(range_B_air);
+            data.dir_in.B = data.cpack.B_air.value();
             auto S_m = myu_0 * P_e / std::pow(data.dir_in.B, 2); // of a single polus, so divided by 2
             
-            data.cpack.k_m = random_from(range_k_m);
-            susp->set_a_m(sqrt(S_m/data.cpack.k_m));
+            if (!data.cpack.k_m) data.cpack.k_m = random_from(range_k_m);
+            susp->set_a_m(sqrt(S_m/data.cpack.k_m.value()));
             susp->set_b_m(S_m/susp->get_a_m());
 
-            data.cpack.k_mm = random_from(range_k_mm);
-            susp->set_l_m(data.cpack.k_mm*susp->get_a_m());
+            if (!data.cpack.k_mm) data.cpack.k_mm = random_from(range_k_mm);
+            susp->set_l_m(data.cpack.k_mm.value()*susp->get_a_m());
 
-            data.cpack.k_x = random_from(range_k_x);
-            auto S_x = data.cpack.k_x*S_m;
+            if (!data.cpack.k_x) data.cpack.k_x = random_from(range_k_x);
+            auto S_x = data.cpack.k_x.value()*S_m;
             susp->set_a_x(susp->get_a_m());
             susp->set_b_x(S_x/susp->get_a_x());
 
-            data.cpack.k_h = random_from(range_k_h);
-            auto S_h = data.cpack.k_h*S_m;
+            if (!data.cpack.k_h) data.cpack.k_h = random_from(range_k_h);
+            auto S_h = data.cpack.k_h.value()*S_m;
             susp->set_b_h(S_h/susp->get_b_m());
 
-            data.cpack.k_delta = random_from(range_k_delta);
-            susp->set_Delta_p(data.cpack.k_delta*susp->get_l_m());
+            if (!data.cpack.k_delta) data.cpack.k_delta = random_from(range_k_delta);
+            susp->set_Delta_p(data.cpack.k_delta.value()*susp->get_l_m());
             susp->set_Delta_m(0.005f);
             auto h_p = susp->get_l_m()-susp->get_b_h()-susp->get_Delta_m()-susp->get_Delta_p();
             susp->set_h_p(h_p);
-            data.cpack.k_p = random_from(range_k_p);
-            susp->set_l_p(susp->get_h_p()*data.cpack.k_p);
+            if (!data.cpack.k_p) data.cpack.k_p = random_from(range_k_p);
+            susp->set_l_p(susp->get_h_p()*data.cpack.k_p.value());
             susp->set_l_h(susp->get_l_p()+2*(susp->get_b_m()+susp->get_Delta_m()));
             susp->set_l_x(susp->get_l_h());
 

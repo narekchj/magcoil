@@ -1,5 +1,5 @@
-#ifndef CONSTS
-#define CONSTS
+#ifndef CONSTS_HPP
+#define CONSTS_HPP
 
 inline constexpr std::size_t operator "" _sz(unsigned long long val) { return val; }
 

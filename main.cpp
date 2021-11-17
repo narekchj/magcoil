@@ -56,9 +56,6 @@ int main(int argc, char **argv)
 
     widget->setWindowTitle(QStringLiteral("Mag suspension"));
 
-//    Qt3DInput::QInputAspect *input = new Qt3DInput::QInputAspect;
-//    view->registerAspect(input);
-
     // Root entity
     Qt3DCore::QEntity *rootEntity = new Qt3DCore::QEntity();
 
@@ -93,14 +90,13 @@ int main(int argc, char **argv)
     camController->setCamera(cameraEntity);
 
     // Scenemodifier
-    SceneModifier *modifier = new SceneModifier(rootEntity);
+    SceneModifier *modifier = new SceneModifier(rootEntity, widget);
     (void)modifier;
 
     // Set root object of the scene
     view->setRootEntity(rootEntity);
 
-
-    QPushButton* stBut = new QPushButton("Start");
+    QPushButton* stBut = new QPushButton("Start Optimization");
     QObject::connect(stBut, &QPushButton::pressed,
             modifier, &SceneModifier::startCalculation);
     vLayout->addWidget(stBut);

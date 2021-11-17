@@ -24,7 +24,7 @@ class SceneModifier : public QObject
     public:
 
 public:
-    explicit SceneModifier(Qt3DCore::QEntity *rootEntity);
+    explicit SceneModifier(Qt3DCore::QEntity *rootEntity, QWidget* parent);
     ~SceneModifier() = default;
 
 public slots:
@@ -161,6 +161,7 @@ public slots:
 
 private:
     Qt3DCore::QEntity *m_rootEntity = nullptr;
+    QWidget* m_Parent = nullptr;
 
     Qt3DExtras::QCuboidMesh* m_anchorCubeMesh = nullptr;
     Qt3DCore::QTransform* m_anchorCubeTransform = nullptr;

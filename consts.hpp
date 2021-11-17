@@ -19,6 +19,10 @@ typedef struct tsizes
     std::optional<float> b_x = {};
     std::optional<float> gap = {};
     std::optional<float> h_p = {};
+
+    std::optional<float> P = {}; //TODO: get rid of those
+    std::optional<float> T = {};
+
 } tsizes;
 
 template<typename T>
@@ -27,7 +31,7 @@ tsizes getSizes(const T& rm)
     const auto& susp = rm.get_susp();
 
     float a   = susp.get_a_m() * 10.0f;
-    float b   = susp.get_a_m() * 10.0f;
+    float b   = susp.get_b_m() * 10.0f;
     float h   = susp.get_l_m() * 10.0f;
     float l   = susp.get_l_h() * 10.0f;
     float c   = susp.get_b_h() * 10.0f;

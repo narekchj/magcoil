@@ -108,7 +108,7 @@ class gen_optimizer : public QObject
             return cPopulation;
         }
 
-        void doMutation(auto& sp_data, size_t optToMutate = 1)
+        void doMutation(auto& sp_data, size_t optToMutate = 2)
         {
             static const std::vector<const frange*> optionsRanges = {&range_k_e,
                 &range_B_air,
@@ -146,10 +146,11 @@ class gen_optimizer : public QObject
 
         void updatePopulation(auto& crossedPopulation)
         {
-            ratio_model_t rm(200000, 20);
+            if (!crossedPopulation.size()) return;
 
-            auto minData = crossedPopulation[0];
-            for(size_t i = 0; i < mMaxMutation; ++i)
+            ratio_model_t rm(200000, 20);
+            std::shared_ptr<ratio_susp_data> minData = nullptr;
+            for(size_t i = 0; true; ++i, minData = nullptr)
             {
                 auto it = std::remove_if(std::begin(crossedPopulation), std::end(crossedPopulation),
                         [this, &rm, &minData](const auto& sp_data) {
@@ -161,21 +162,23 @@ class gen_optimizer : public QObject
                             emit resultReady(getSizes(rm));
                             if (!passes(*sp_data)) return true;
 
-                            minData = std::min(minData, sp_data, fit);
+                            minData = (minData == nullptr)? sp_data : std::min(minData, sp_data, fit);
                             return false;
                         });
 
                 crossedPopulation.erase(it, std::end(crossedPopulation));
 
-                const bool bdec = (std::min(minData, mIterationMin.back(), fit) == minData);
-                if (bdec || !crossedPopulation.size()) break;
+                if (!crossedPopulation.size()) return;
+
+                if (std::min(minData, mIterationMin.back(), fit) == minData) break;
+
+                if (i >= mMaxMutation) break;
               
-                minData = crossedPopulation[0];
                 // if not decreasing then mutation
                 std::for_each(std::begin(crossedPopulation), std::end(crossedPopulation),
-                        [this](auto& sp_data) {this->doMutation(*sp_data, 3);});
+                        [this](auto& sp_data) {this->doMutation(*sp_data, 1);});
             }
-                
+           
             mIterationMin.push_back(minData);
            
             TPopContainer temp;
@@ -190,7 +193,6 @@ class gen_optimizer : public QObject
 
         void finishOptimization()
         {
-            std::cout << "final results\n";
             std::shared_ptr<ratio_susp_data> minVal = mIterationMin[0];
             std::for_each(std::begin(mIterationMin), std::end(mIterationMin),
                     [&minVal](const auto& val)
@@ -198,7 +200,11 @@ class gen_optimizer : public QObject
 
             ratio_model_t rm(200000, 20);
             rm.init_suspension(*minVal);
-            emit finalResult(getSizes(rm));
+            auto sz = getSizes(rm);
+            sz.P = minVal->coil_out.P;
+            sz.T = minVal->coil_out.T;
+
+            emit finalResult(sz);
         }
 
     private:
@@ -211,25 +217,25 @@ class gen_optimizer : public QObject
 
     private:
         using TPopContainer = std::vector<std::shared_ptr<ratio_susp_data>>;
-        const size_t mMaxMutation = 5;
+        const size_t mMaxMutation = 7;
         const size_t mCrossPortion = 10;
         const size_t mInitCount = 100;
         TPopContainer mPopulation;
         TPopContainer mIterationMin;
         std::mutex mMutex;
     public:
-        void runOptimization(size_t inCount = 20)
+        void runOptimization(size_t inCount = 100)
         {
             // create initial population
             createInitialPopulation();
             mIterationMin.push_back(mPopulation[0]);
 
-
             // create crossed population
-            std::cout << "Init P is " << mPopulation[0]->coil_out.P << std::endl;
+            auto initP = mPopulation[0]->coil_out.P;
             for(size_t i = 0; i < inCount; ++i)
             {
                 auto cPopulation = doCrossing();
+                std::cout <<i<<"/"<<inCount<<std::endl;
 
                 if (!cPopulation.size()) break;
 
@@ -237,8 +243,8 @@ class gen_optimizer : public QObject
                 updatePopulation(cPopulation);
             }
 
-
             finishOptimization();
+            std::cout << "Init P is " << initP << std::endl;
         }
     signals:
         void resultReady(const tsizes&);

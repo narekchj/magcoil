@@ -9,15 +9,29 @@
 
 //#define show_size
 
-// Function to return random value in the given range.
-float random_from(const std::pair<float,float>& in_range, const int precision = 100)
+namespace 
 {
-    static std::random_device rd = {};
-    static auto mtgen = std::mt19937{rd()};
-    auto md = std::uniform_int_distribution<>{0, precision};
-    auto random_val = in_range.first + (in_range.second - in_range.first) / (float)precision * (float)md(mtgen);
+    // Function to return random value in the given range.
+    float random_from(const std::pair<float,float>& in_range, const int precision = 100)
+    {
+        static std::random_device rd = {};
+        static auto mtgen = std::mt19937{rd()};
+        auto md = std::uniform_int_distribution<>{0, precision};
+        auto random_val = in_range.first + (in_range.second - in_range.first) / (float)precision * (float)md(mtgen);
 
-    return random_val;
+        return random_val;
+    }
+
+    using frange = std::pair<float,float>;
+
+    static constexpr frange range_k_e = {1.0f, 1.1f};
+    static constexpr frange range_k_m = {1.0f, 1.1f};
+    static constexpr frange range_k_mm = {1.5f, 2.0f};
+    static constexpr frange range_k_x = {0.6f, 0.8f};
+    static constexpr frange range_k_h = {1.0f, 1.1f};
+    static constexpr frange range_k_delta = {0.02f, 0.05f};
+    static constexpr frange range_k_p = {1.2f, 2.0f};
+    static constexpr frange range_B_air = {0.9f, 1.2f};
 }
 
 ///
@@ -103,16 +117,5 @@ class ratio_model : public mag_model<T>
         float P_v = 0.0f;
         float n = 0.0f;
 
-        using frange = std::pair<float,float>;
-
-    public:
-        static constexpr frange range_k_e = {1.0f, 1.1f};
-        static constexpr frange range_k_m = {1.0f, 1.1f};
-        static constexpr frange range_k_mm = {1.5f, 2.0f};
-        static constexpr frange range_k_x = {0.6f, 0.8f};
-        static constexpr frange range_k_h = {1.0f, 1.1f};
-        static constexpr frange range_k_delta = {0.02f, 0.05f};
-        static constexpr frange range_k_p = {1.2f, 2.0f};
-        static constexpr frange range_B_air = {0.9f, 1.2f};
 };
 #endif //RATIO_MAG_MODEL

@@ -1,19 +1,15 @@
 #ifndef GEN_OPTIM_HPP
 #define GEN_OPTIM_HPP
 
-#include <mutex>
+#include <future>
+#include <chrono>
 #include "ratio_mag_model.hpp"
-
-std::ostream& operator<<(std::ostream& s, const ratio_susp_data& dt)
-{
-    s << dt.coil_out.P;
-    return s;
-}
+#include "consts.hpp"
 
 ///
 /// Run through the optimization flow by using genetic algorithm.
 ///
-class gen_optimizer
+class gen_optimizer 
 {
     using ratio_model_t = ratio_model<ratio_susp_data>;
 
@@ -21,33 +17,69 @@ class gen_optimizer
         gen_optimizer() = default;
         ~gen_optimizer() = default;
 
+    private:
         void createInitialPopulation()
         {
-            ratio_model_t rm(200000, 20);
             mPopulation.clear();
+            mPopulation.reserve(mInitCount);
 
-            while (mPopulation.size() < 10)
+            const auto populate = [this]() {
+                ratio_model_t rm(200000, 20);
+                while (true)
+                {
+                    auto sp_data = std::make_unique<ratio_susp_data>();
+                    rm.init_suspension(*sp_data);
+                    rm.calculate_direct(*sp_data);
+                    rm.calculate_reverse(*sp_data);
+                    rm.calculate_coil(*sp_data);
+
+                    if (!passes(*sp_data)) continue;
+
+                    {
+                        std::lock_guard<std::mutex> guard(mMutex);
+                        if (mPopulation.size() >= mInitCount) return;
+                        // the individum is fine add to population
+                        mPopulation.push_back(std::move(sp_data));
+                    }
+                }
+            };
+
+            const auto hardNum = std::thread::hardware_concurrency();
             {
-                std::unique_ptr<ratio_susp_data> sp_data = std::make_unique<ratio_susp_data>();
-                rm.init_suspension(*sp_data);
-                rm.calculate_direct(*sp_data);
-                rm.calculate_reverse(*sp_data);
-                rm.calculate_coil(*sp_data);
-                if (!passes(*sp_data)) continue;
-
-                // the individum is fine add to population
-                mPopulation.push_back(std::move(sp_data));
+                std::vector<std::future<void>> f {hardNum};
+                for(size_t i = 0; i < hardNum; ++i)
+                {
+                  f[i] = std::async(std::launch::async, populate);
+                }
             }
 
             // we need to sort by power
-            std::sort(mPopulation.begin(), mPopulation.end(),
-                    [](const auto& ld, const auto& rd)
-                    {return (*ld).coil_out.P < (*rd).coil_out.P;});
+            std::sort(mPopulation.begin(), mPopulation.end(),fit);
         }
 
-    private:
-        void createInitPopulation()
+        auto doCrossing()
         {
+            const auto endIt = (mPopulation.size() > (mCrossPortion + 2)) ?
+                std::next(mPopulation.begin(), mCrossPortion) :
+                mPopulation.end();
+
+            // Lambda for crossing operation.
+            auto crossOp = [](const auto& in1, const auto& in2)
+            {
+                auto sp = std::make_unique<ratio_susp_data>();
+
+                sp->cpack.k_e = (in1->cpack.k_e.value() + in2->cpack.k_e.value()) / 2.0f;
+                sp->cpack.B_air = (in1->cpack.B_air.value() + in2->cpack.B_air.value()) / 2.0f;
+                sp->cpack.k_m = (in1->cpack.k_m.value() + in2->cpack.k_m.value()) / 2.0f;
+                sp->cpack.k_mm = (in1->cpack.k_mm.value() + in2->cpack.k_mm.value()) / 2.0f;
+                sp->cpack.k_x = (in1->cpack.k_x.value() + in2->cpack.k_x.value()) / 2.0f;
+                sp->cpack.k_h = (in1->cpack.k_h.value() + in2->cpack.k_h.value()) / 2.0f;
+                sp->cpack.k_delta = (in1->cpack.k_delta.value() + in2->cpack.k_delta.value()) / 2.0f;
+                sp->cpack.k_p = (in1->cpack.k_p.value() + in2->cpack.k_p.value()) / 2.0f;
+
+                return sp;
+            };
+
             std::vector<std::shared_ptr<ratio_susp_data>> cPopulation;
             for (auto it = mPopulation.begin(); it != endIt; ++it)
             {
@@ -108,7 +140,7 @@ class gen_optimizer
             for(size_t i = 0; true; ++i, minData = nullptr)
             {
                 auto it = std::remove_if(std::begin(crossedPopulation), std::end(crossedPopulation),
-                        [this, &rm, &minData](const auto& sp_data) {
+                        [&rm, &minData](const auto& sp_data) {
                             rm.init_suspension(*sp_data);
                             rm.calculate_direct(*sp_data);
                             rm.calculate_reverse(*sp_data);
@@ -152,27 +184,27 @@ class gen_optimizer
                     [&minVal](const auto& val)
                     { minVal = std::min(val, minVal, fit); });
 
-            ratio_model_t rm(200000, 20);
-            rm.init_suspension(*minVal);
-            auto sz = getSizes(rm);
-            sz.P = minVal->coil_out.P;
-            sz.T = minVal->coil_out.T;
-
+          //  ratio_model_t rm(200000, 20);
+          //  rm.init_suspension(*minVal);
+            std::cout << "Final P = " << minVal->coil_out.P << std::endl;
         }
 
     private:
         static const inline auto passes = [](const auto& dt) 
         { return dt.coil_out.T >= 130 && dt.coil_out.T <= 160; };
 
+        static const inline auto fit = [](const auto& ld, const auto& rd)
+        { return (*ld).coil_out.P < (*rd).coil_out.P; };
+
+
     private:
         using TPopContainer = std::vector<std::shared_ptr<ratio_susp_data>>;
-        const size_t mMaxMutation = 7;
+        const size_t mMaxMutation = 1;
         const size_t mCrossPortion = 10;
         const size_t mInitCount = 100;
         TPopContainer mPopulation;
         TPopContainer mIterationMin;
         std::mutex mMutex;
-
     public:
         void runOptimization(size_t inCount = 100)
         {
@@ -184,8 +216,13 @@ class gen_optimizer
             auto initP = mPopulation[0]->coil_out.P;
             for(size_t i = 0; i < inCount; ++i)
             {
+                printf("\r");
+                printf("%zu/%zu", i, inCount);
+                fflush(stdout);
+
+                using namespace std::literals;
+                std::this_thread::sleep_for(100ms);
                 auto cPopulation = doCrossing();
-                std::cout <<i<<"/"<<inCount<<std::endl;
 
                 if (!cPopulation.size()) break;
 
@@ -193,8 +230,9 @@ class gen_optimizer
                 updatePopulation(cPopulation);
             }
 
+            std::cout << std::endl;
             finishOptimization();
-            std::cout << "Init P is " << initP << std::endl;
+            std::cout << "Init P = " << initP << std::endl;
         }
 };
 

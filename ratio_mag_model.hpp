@@ -62,10 +62,18 @@ class ratio_model : public mag_model<T>
     public:
         ratio_model(float P_vagon, float sus_count) 
             : P_v(P_vagon)
-              , n(sus_count) {}
+            , n(sus_count) {}
         ~ratio_model() = default;
 
     public:
+        void runAll(T& data) override 
+        {
+            init_suspension(data);
+            base_class::calculate_direct(data);
+            base_class::calculate_reverse(data);
+            base_class::calculate_coil(data);
+        }
+
         void init_suspension(T& data) override
         {
             if (!data.cpack.k_e) data.cpack.k_e = random_from(range_k_e);

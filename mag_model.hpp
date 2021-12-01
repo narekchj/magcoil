@@ -44,9 +44,11 @@ class mag_model
         }
 
     public:
+
+        virtual void runAll(T& data) = 0;
         virtual void init_suspension(T& ) = 0;
 
-        virtual bool is_initialized(const T& data) const 
+        bool is_initialized(const T& data) const 
         {
             // TODO: review check mechanisms.
             if (!m_susp) return false;
@@ -54,7 +56,7 @@ class mag_model
             return true;
         }
 
-        virtual void calculate_direct(T& data)
+        void calculate_direct(T& data)
         {
             if (!is_initialized(data)) return;
 

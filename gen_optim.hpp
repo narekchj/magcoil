@@ -3,22 +3,33 @@
 
 #include <future>
 #include <chrono>
+#include <string_view>
+#include <fstream>
 #include "ratio_mag_model.hpp"
 #include "consts.hpp"
+#include "utils.hpp"
+
+
+namespace
+{
+    auto cr(const auto val1, const auto val2)
+    {
+        return (val1 + val2 + std::min(val1, val2))/3;
+    }
+}
 
 ///
 /// Run through the optimization flow by using genetic algorithm.
 ///
-class gen_optimizer 
+class GenOptimizer 
 {
-    using ratio_model_t = ratio_model<ratio_susp_data>;
 
     public:
-        gen_optimizer() = default;
-        ~gen_optimizer() = default;
+        GenOptimizer() = default;
+        ~GenOptimizer() = default;
 
     private:
-        void createInitialPopulation()
+        void populateWithRandom()
         {
             mPopulation.clear();
             mPopulation.reserve(mInitCount);
@@ -28,10 +39,7 @@ class gen_optimizer
                 while (true)
                 {
                     auto sp_data = std::make_unique<ratio_susp_data>();
-                    rm.init_suspension(*sp_data);
-                    rm.calculate_direct(*sp_data);
-                    rm.calculate_reverse(*sp_data);
-                    rm.calculate_coil(*sp_data);
+                    rm.runAll(*sp_data);
 
                     if (!passes(*sp_data)) continue;
 
@@ -48,13 +56,11 @@ class gen_optimizer
             {
                 std::vector<std::future<void>> f {hardNum};
                 for(size_t i = 0; i < hardNum; ++i)
-                {
                   f[i] = std::async(std::launch::async, populate);
-                }
             }
 
             // we need to sort by power
-            std::sort(mPopulation.begin(), mPopulation.end(),fit);
+            std::sort(mPopulation.begin(), mPopulation.end(), fit);
         }
 
         auto doCrossing()
@@ -68,14 +74,14 @@ class gen_optimizer
             {
                 auto sp = std::make_unique<ratio_susp_data>();
 
-                sp->cpack.k_e = (in1->cpack.k_e.value() + in2->cpack.k_e.value()) / 2.0f;
-                sp->cpack.B_air = (in1->cpack.B_air.value() + in2->cpack.B_air.value()) / 2.0f;
-                sp->cpack.k_m = (in1->cpack.k_m.value() + in2->cpack.k_m.value()) / 2.0f;
-                sp->cpack.k_mm = (in1->cpack.k_mm.value() + in2->cpack.k_mm.value()) / 2.0f;
-                sp->cpack.k_x = (in1->cpack.k_x.value() + in2->cpack.k_x.value()) / 2.0f;
-                sp->cpack.k_h = (in1->cpack.k_h.value() + in2->cpack.k_h.value()) / 2.0f;
-                sp->cpack.k_delta = (in1->cpack.k_delta.value() + in2->cpack.k_delta.value()) / 2.0f;
-                sp->cpack.k_p = (in1->cpack.k_p.value() + in2->cpack.k_p.value()) / 2.0f;
+                sp->cpack.k_e = cr(in1->cpack.k_e.value(), in2->cpack.k_e.value());
+                sp->cpack.B_air = cr(in1->cpack.B_air.value(), in2->cpack.B_air.value());
+                sp->cpack.k_m = cr(in1->cpack.k_m.value(), in2->cpack.k_m.value());
+                sp->cpack.k_mm = cr(in1->cpack.k_mm.value(), in2->cpack.k_mm.value());
+                sp->cpack.k_x = cr(in1->cpack.k_x.value(), in2->cpack.k_x.value());
+                sp->cpack.k_h = cr(in1->cpack.k_h.value(), in2->cpack.k_h.value());
+                sp->cpack.k_delta = cr(in1->cpack.k_delta.value(), in2->cpack.k_delta.value());
+                sp->cpack.k_p = cr(in1->cpack.k_p.value(), in2->cpack.k_p.value());
 
                 return sp;
             };
@@ -90,12 +96,17 @@ class gen_optimizer
                 }
             }
 
+            std::for_each(std::begin(cPopulation), std::end(cPopulation),
+                    [this](auto& sp_data) { doMutation(*sp_data); });
+
+            DEBUGP();
+
             mPopulation.erase(mPopulation.begin(), endIt);
 
             return cPopulation;
         }
 
-        void doMutation(auto& sp_data, size_t optToMutate = 2)
+        void doMutation(auto& sp_data, const size_t optToMutate = 2)
         {
             static const std::vector<const frange*> optionsRanges = {&range_k_e,
                 &range_B_air,
@@ -137,34 +148,25 @@ class gen_optimizer
 
             ratio_model_t rm(200000, 20);
             std::shared_ptr<ratio_susp_data> minData = nullptr;
-            for(size_t i = 0; true; ++i, minData = nullptr)
-            {
-                auto it = std::remove_if(std::begin(crossedPopulation), std::end(crossedPopulation),
-                        [&rm, &minData](const auto& sp_data) {
-                            rm.init_suspension(*sp_data);
-                            rm.calculate_direct(*sp_data);
-                            rm.calculate_reverse(*sp_data);
-                            rm.calculate_coil(*sp_data);
+            auto it = std::remove_if(std::begin(crossedPopulation),
+                    std::end(crossedPopulation),
+                    [&rm, &minData](const auto& sp_data) {
+                        rm.runAll(*sp_data);
 
-                            if (!passes(*sp_data)) return true;
+                        if (!passes(*sp_data)) return true;
 
-                            minData = (minData == nullptr)? sp_data : std::min(minData, sp_data, fit);
-                            return false;
-                        });
+                        minData = (minData == nullptr)?
+                        sp_data : std::min(minData, sp_data, fit);
 
-                crossedPopulation.erase(it, std::end(crossedPopulation));
+                        return false;
+                    });
 
-                if (!crossedPopulation.size()) return;
+            crossedPopulation.erase(it, std::end(crossedPopulation));
 
-                if (std::min(minData, mIterationMin.back(), fit) == minData) break;
+            DEBUGM("alived remained %zu\n", crossedPopulation.size());
 
-                if (i >= mMaxMutation) break;
-              
-                // if not decreasing then mutation
-                std::for_each(std::begin(crossedPopulation), std::end(crossedPopulation),
-                        [this](auto& sp_data) {this->doMutation(*sp_data, 1);});
-            }
-           
+            if (!crossedPopulation.size()) return;
+
             mIterationMin.push_back(minData);
            
             TPopContainer temp;
@@ -183,10 +185,61 @@ class gen_optimizer
             std::for_each(std::begin(mIterationMin), std::end(mIterationMin),
                     [&minVal](const auto& val)
                     { minVal = std::min(val, minVal, fit); });
-
-          //  ratio_model_t rm(200000, 20);
-          //  rm.init_suspension(*minVal);
+           
             std::cout << "Final P = " << minVal->coil_out.P << std::endl;
+        }
+
+    public:
+        void createInitialPopulation(TSharedDataVec&& inVec = {})
+        {
+            if (inVec.size() == 0)
+            {
+                populateWithRandom();
+                return;
+            }
+
+            mPopulation.clear();
+            mPopulation = std::move(inVec);
+
+            ratio_model_t rm(200000, 20);
+            std::for_each(std::begin(mPopulation), std::end(mPopulation),
+                    [&rm](const auto& sp_data)
+                    {
+                    rm.runAll(*sp_data);
+                    DEBUGM("P is %f and T %f\n", sp_data->coil_out.P,
+                            sp_data->coil_out.T);
+                    });
+
+            // we need to sort by power
+            std::sort(mPopulation.begin(), mPopulation.end(), fit);
+        }
+
+        void runOptimization(size_t inCount = 1000)
+        {
+            // create initial population
+            mIterationMin.push_back(mPopulation[0]);
+
+            // create crossed population
+            auto initP = mPopulation[0]->coil_out.P;
+            for(size_t i = 0; i < inCount; ++i)
+            {
+                printf("\r");
+                printf("%zu/%zu", i, inCount);
+                fflush(stdout);
+
+                using namespace std::literals;
+                auto cPopulation = doCrossing();
+
+                if (!mPopulation.size() && !cPopulation.size())
+                    break;
+
+                // fit new population to the existing one
+                updatePopulation(cPopulation);
+            }
+
+            std::cout << std::endl;
+            finishOptimization();
+            std::cout << "Init P = " << initP << std::endl;
         }
 
     private:
@@ -199,41 +252,12 @@ class gen_optimizer
 
     private:
         using TPopContainer = std::vector<std::shared_ptr<ratio_susp_data>>;
-        const size_t mMaxMutation = 1;
         const size_t mCrossPortion = 10;
         const size_t mInitCount = 100;
         TPopContainer mPopulation;
         TPopContainer mIterationMin;
         std::mutex mMutex;
     public:
-        void runOptimization(size_t inCount = 100)
-        {
-            // create initial population
-            createInitialPopulation();
-            mIterationMin.push_back(mPopulation[0]);
-
-            // create crossed population
-            auto initP = mPopulation[0]->coil_out.P;
-            for(size_t i = 0; i < inCount; ++i)
-            {
-                printf("\r");
-                printf("%zu/%zu", i, inCount);
-                fflush(stdout);
-
-                using namespace std::literals;
-                std::this_thread::sleep_for(100ms);
-                auto cPopulation = doCrossing();
-
-                if (!cPopulation.size()) break;
-
-                // fit new population to the existing one
-                updatePopulation(cPopulation);
-            }
-
-            std::cout << std::endl;
-            finishOptimization();
-            std::cout << "Init P = " << initP << std::endl;
-        }
 };
 
 #endif // GEN_OPTIM_HPP

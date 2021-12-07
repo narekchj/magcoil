@@ -7,6 +7,14 @@
 
 int main(int argc, char** argv)
 {
+    if (argc == 1)
+    {
+      std::printf("Generate and save data to the 'data' file.\n");
+      generateAndSaveToFile("data", 100);
+
+      return 0;
+    }
+
     if (argc < 3)
     {
         std::cout << "You need provide iteration count and file name." << std::endl;

@@ -21,10 +21,11 @@ namespace
 ///
 /// Run through the optimization flow by using genetic algorithm.
 ///
-class GenOptimizer 
+template<typename Param>
+class GenOptimizer
 {
-
     public:
+        //GenOptimizer(Param pr) : mParam(pr) {}
         GenOptimizer() = default;
         ~GenOptimizer() = default;
 
@@ -148,6 +149,7 @@ class GenOptimizer
 
             ratio_model_t rm(200000, 20);
             std::shared_ptr<ratio_susp_data> minData = nullptr;
+
             auto it = std::remove_if(std::begin(crossedPopulation),
                     std::end(crossedPopulation),
                     [&rm, &minData](const auto& sp_data) {
@@ -187,28 +189,32 @@ class GenOptimizer
                     { minVal = std::min(val, minVal, fit); });
            
             std::cout << "Final P = " << minVal->coil_out.P << std::endl;
+            std::cout << "Final price = " << minVal->other.price << "$" << std::endl;
+
+            const std::string fileToAppend = "/home/narekc/tmp/susp_data";
+            printf("Appended to the %s\n", fileToAppend.c_str()); 
+            appendToFile(fileToAppend, *minVal);
         }
 
     public:
         void createInitialPopulation(TSharedDataVec&& inVec = {})
-        {
-            if (inVec.size() == 0)
+        { 
+            if (inVec.size() == 0) //TODO: make run and add to pop parallel
             {
                 populateWithRandom();
                 return;
             }
 
+            // The case when we have init population to calculate.
             mPopulation.clear();
             mPopulation = std::move(inVec);
 
             ratio_model_t rm(200000, 20);
-            std::for_each(std::begin(mPopulation), std::end(mPopulation),
-                    [&rm](const auto& sp_data)
-                    {
-                    rm.runAll(*sp_data);
-                    DEBUGM("P is %f and T %f\n", sp_data->coil_out.P,
-                            sp_data->coil_out.T);
-                    });
+            auto DoCalc = [rm](auto& sp_data) mutable { rm.runAll(*sp_data); };
+
+            // Now do calculation parallel
+            calcRange(std::begin(mPopulation), std::end(mPopulation),
+                    DoCalc, 8);
 
             // we need to sort by power
             std::sort(mPopulation.begin(), mPopulation.end(), fit);
@@ -221,6 +227,7 @@ class GenOptimizer
 
             // create crossed population
             auto initP = mPopulation[0]->coil_out.P;
+            auto initPrice = mPopulation[0]->other.price;
             for(size_t i = 0; i < inCount; ++i)
             {
                 printf("\r");
@@ -240,6 +247,7 @@ class GenOptimizer
             std::cout << std::endl;
             finishOptimization();
             std::cout << "Init P = " << initP << std::endl;
+            std::cout << "Init price = " << initPrice << "$" << std::endl;
         }
 
     private:
@@ -247,8 +255,11 @@ class GenOptimizer
         { return dt.coil_out.T >= 130 && dt.coil_out.T <= 160; };
 
         static const inline auto fit = [](const auto& ld, const auto& rd)
-        { return (*ld).coil_out.P < (*rd).coil_out.P; };
+        //{ return (*ld).coil_out.P < (*rd).coil_out.P; };
+        { return Param()(*ld) < Param()(*rd); };
 
+//    private:
+//        Param mParam;
 
     private:
         using TPopContainer = std::vector<std::shared_ptr<ratio_susp_data>>;
@@ -257,7 +268,6 @@ class GenOptimizer
         TPopContainer mPopulation;
         TPopContainer mIterationMin;
         std::mutex mMutex;
-    public:
 };
 
 #endif // GEN_OPTIM_HPP

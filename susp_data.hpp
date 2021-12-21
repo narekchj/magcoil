@@ -103,6 +103,11 @@ typedef struct
         float L_wire = 0.0f; //mm
     } coil_out;
 
+    struct
+    {
+        float price = 0.f;
+    } other;
+
 } susp_data;
 
 using circles_t = susp_data::circles_t;

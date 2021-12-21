@@ -51,6 +51,7 @@ struct ratio_susp_data : public susp_data
         std::optional<float> k_delta;
         std::optional<float> k_p;
     } cpack;
+
 };
 
 // This model used to initialize the magnetic suspension via size coeff.
@@ -72,6 +73,9 @@ class ratio_model : public mag_model<T>
             base_class::calculate_direct(data);
             base_class::calculate_reverse(data);
             base_class::calculate_coil(data);
+
+            // finally calculate the price
+            calculate_price(data, *base_class::m_susp);
         }
 
         void init_suspension(T& data) override

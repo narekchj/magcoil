@@ -121,6 +121,24 @@ namespace
         fileToWrite << *randData.back();
     }
 
+    void appendToFile(const std::string_view inPath, const ratio_susp_data& sp_data)
+    {
+        std::ofstream fileToWrite;
+
+        fileToWrite.open(inPath.data(), std::ofstream::app);
+        if (!fileToWrite.is_open())
+        {
+            const std::string str = std::string("File ")
+            + std::string(inPath)
+            + std::string(" is not opened, it seems missing.\n")
+            + std::string("New one with random data is created. Try one more time\n");
+
+            throw std::runtime_error(str);
+        }
+
+        fileToWrite << sp_data << std::endl;
+    }
+
 
     std::stringstream& operator>>(std::stringstream& inStream, ratio_susp_data& sp_data)
     {
@@ -172,6 +190,27 @@ namespace
 
         DEBUGM("loaded size %zu\n", data.size());
         return data;
+    }
+
+    template <typename It, typename Lam>
+    void calcRange(It&& inBegin, It&& inEnd, Lam&& opt, const size_t inThCount = 0)
+    {
+        const auto thCount = inThCount;
+        const auto diff = std::distance(inBegin, inEnd);
+        const auto step = diff / thCount;
+
+        {
+            //std::vector<std::future<void>> f(thCount);A
+            std::vector<std::future<void>> f(thCount);
+            for(size_t i = 0; i < thCount; ++i)
+            {
+                const auto b = inBegin + i * step;
+                const auto e = (i == thCount-1) ? inEnd : inBegin + (i+1) * step;
+
+                f[i] = std::async(std::launch::async, [b, e, opt]() mutable
+                        {std::for_each(b, e, [opt](auto& val) mutable { opt(val); });});
+            }
+        }
     }
 }
 

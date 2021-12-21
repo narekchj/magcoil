@@ -15,9 +15,20 @@ int main(int argc, char** argv)
 
     const std::string fileName = argv[2];
 
-    GenOptimizer opt;
-    opt.createInitialPopulation(loadFromFile<TSharedDataVec>(fileName));
-    opt.runOptimization(std::stoul(argv[1]));
+    {
+        //TODO: I don't like this way to provide lambda.
+        auto Power = [](const auto& data) {return data.coil_out.P;};
+        GenOptimizer<decltype(Power)> opt;
+        opt.createInitialPopulation(loadFromFile<TSharedDataVec>(fileName));
+        opt.runOptimization(std::stoul(argv[1]));
+    }
+
+    {
+        auto Price = [](const auto& data) {return data.other.price;};
+        GenOptimizer<decltype(Price)> opt;
+        opt.createInitialPopulation(loadFromFile<TSharedDataVec>(fileName));
+        opt.runOptimization(std::stoul(argv[1]));
+    }
 
     return 0;
 }

@@ -247,7 +247,7 @@ class mag_model
 /// Helper to calculate wire length.
 ///
 template <typename T>
-float calculate_price(const T& data, const mag_suspension& susp) // TODO
+void calculate_price(T& data, const mag_suspension& susp) // TODO
 {
     const auto weight = data.coil_out.L_wire / 1000000.0f * 10.0f; //TODO: add the table of the psdkt weight
 
@@ -269,7 +269,7 @@ float calculate_price(const T& data, const mag_suspension& susp) // TODO
     const auto bulk_price = bulk_weight * usd_per_steel_kg;
 
     // price of the suspension
-    return bulk_price + coil_price;
+    data.other.price = bulk_price + coil_price;
 }
 
 #endif //MAG_MODEL

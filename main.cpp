@@ -38,5 +38,23 @@ int main(int argc, char** argv)
         opt.runOptimization(std::stoul(argv[1]));
     }
 
+    {
+        auto PowerPrice = [](const auto& data) 
+        {
+            const auto a = 0.5f;
+            const auto b = 1.f - a;
+
+            const auto mid = (data.other.price + data.coil_out.P)/2;
+            const auto midq = (std::pow((2*a * data.other.price - mid), 2) + 
+                std::pow((2*b * data.coil_out.P - mid), 2)) / 2;
+
+            return std::sqrt(midq);
+        };
+
+        GenOptimizer<decltype(PowerPrice)> opt;
+        opt.createInitialPopulation(loadFromFile<TSharedDataVec>(fileName));
+        opt.runOptimization(std::stoul(argv[1]));
+    }
+
     return 0;
 }

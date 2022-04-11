@@ -4,6 +4,7 @@
 #include "simple_mag_model.hpp"
 #include "gen_optim.hpp"
 #include "utils.hpp"
+#include "fit_func.hpp"
 
 int main(int argc, char** argv)
 {
@@ -15,7 +16,7 @@ int main(int argc, char** argv)
       return 0;
     }
 
-    if (argc < 3)
+    if (argc != 3)
     {
         std::cout << "You need provide iteration count and file name." << std::endl;
         return 0;
@@ -24,34 +25,21 @@ int main(int argc, char** argv)
     const std::string fileName = argv[2];
 
     {
-        //TODO: I don't like this way to provide lambda.
-        auto Power = [](const auto& data) {return data.coil_out.P;};
-        GenOptimizer<decltype(Power)> opt;
+        GenOptimizer opt;
         opt.createInitialPopulation(loadFromFile<TSharedDataVec>(fileName));
         opt.runOptimization(std::stoul(argv[1]));
     }
 
+
     {
-        auto Price = [](const auto& data) {return data.other.price;};
-        GenOptimizer<decltype(Price)> opt;
+        GenOptimizer<PriceFit> opt;
         opt.createInitialPopulation(loadFromFile<TSharedDataVec>(fileName));
         opt.runOptimization(std::stoul(argv[1]));
     }
 
+
     {
-        auto PowerPrice = [](const auto& data) 
-        {
-            const auto a = 0.5f;
-            const auto b = 1.f - a;
-
-            const auto mid = (data.other.price + data.coil_out.P)/2;
-            const auto midq = (std::pow((2*a * data.other.price - mid), 2) + 
-                std::pow((2*b * data.coil_out.P - mid), 2)) / 2;
-
-            return std::sqrt(midq);
-        };
-
-        GenOptimizer<decltype(PowerPrice)> opt;
+        GenOptimizer<PowerPriceFit> opt;
         opt.createInitialPopulation(loadFromFile<TSharedDataVec>(fileName));
         opt.runOptimization(std::stoul(argv[1]));
     }

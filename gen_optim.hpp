@@ -8,6 +8,7 @@
 #include "ratio_mag_model.hpp"
 #include "consts.hpp"
 #include "utils.hpp"
+#include "fit_func.hpp"
 
 
 namespace
@@ -21,12 +22,11 @@ namespace
 ///
 /// Run through the optimization flow by using genetic algorithm.
 ///
-template<typename Param>
+template<typename FitFuncT = PowerFit>
 class GenOptimizer
 {
     public:
-        //GenOptimizer(Param pr) : mParam(pr) {}
-        GenOptimizer() = default;
+        GenOptimizer() : mFitFunc() {}
         ~GenOptimizer() = default;
 
     private:
@@ -61,7 +61,7 @@ class GenOptimizer
             }
 
             // we need to sort by power
-            std::sort(mPopulation.begin(), mPopulation.end(), fit);
+            std::sort(mPopulation.begin(), mPopulation.end(), mFitFunc);
         }
 
         auto doCrossing()
@@ -150,15 +150,16 @@ class GenOptimizer
             ratio_model_t rm(200000, 20);
             std::shared_ptr<ratio_susp_data> minData = nullptr;
 
+            //TODO: rework this part
             auto it = std::remove_if(std::begin(crossedPopulation),
                     std::end(crossedPopulation),
-                    [&rm, &minData](const auto& sp_data) {
+                    [&fitFunc = mFitFunc, &rm, &minData](const auto& sp_data) {
                         rm.runAll(*sp_data);
 
                         if (!passes(*sp_data)) return true;
 
                         minData = (minData == nullptr)?
-                        sp_data : std::min(minData, sp_data, fit);
+                        sp_data : std::min(minData, sp_data, fitFunc);
 
                         return false;
                     });
@@ -176,7 +177,7 @@ class GenOptimizer
 
             std::merge(std::begin(mPopulation), std::end(mPopulation),
                     std::begin(crossedPopulation), std::end(crossedPopulation),
-                    std::back_inserter<TPopContainer>(temp), fit);
+                    std::back_inserter<TPopContainer>(temp), mFitFunc);
 
             mPopulation = std::move(temp);
         }
@@ -185,8 +186,8 @@ class GenOptimizer
         {
             std::shared_ptr<ratio_susp_data> minVal = mIterationMin[0];
             std::for_each(std::begin(mIterationMin), std::end(mIterationMin),
-                    [&minVal](const auto& val)
-                    { minVal = std::min(val, minVal, fit); });
+                    [&fitFunc = mFitFunc, &minVal](const auto& val)
+                    { minVal = std::min(val, minVal, fitFunc); });
            
             std::cout << "Final P = " << minVal->coil_out.P << std::endl;
             std::cout << "Final price = " << minVal->other.price << "$" << std::endl;
@@ -217,7 +218,7 @@ class GenOptimizer
                     DoCalc, 8);
 
             // we need to sort by power
-            std::sort(mPopulation.begin(), mPopulation.end(), fit);
+            std::sort(mPopulation.begin(), mPopulation.end(), mFitFunc);
         }
 
         void runOptimization(size_t inCount = 1000)
@@ -254,12 +255,9 @@ class GenOptimizer
         static const inline auto passes = [](const auto& dt) 
         { return dt.coil_out.T >= 130 && dt.coil_out.T <= 160; };
 
-        static const inline auto fit = [](const auto& ld, const auto& rd)
-        //{ return (*ld).coil_out.P < (*rd).coil_out.P; };
-        { return Param()(*ld) < Param()(*rd); };
-
-//    private:
-//        Param mParam;
+    private:
+        /// Fitness function.
+        FitFuncT mFitFunc;
 
     private:
         using TPopContainer = std::vector<std::shared_ptr<ratio_susp_data>>;

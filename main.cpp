@@ -11,7 +11,8 @@ int main(int argc, char** argv)
     if (argc == 1)
     {
       std::printf("Generate and save data to the 'data' file.\n");
-      generateAndSaveToFile("data", 100);
+      //generateAndSaveToFile("data", 10);
+      generateAndSaveToFileAsData("data", 10);
 
       return 0;
     }
@@ -23,8 +24,9 @@ int main(int argc, char** argv)
     }
 
     const std::string fileName = argv[2];
-
+#if 0
     {
+        printf("Minimum power case\n");
         GenOptimizer opt;
         opt.createInitialPopulation(loadFromFile<TSharedDataVec>(fileName));
         opt.runOptimization(std::stoul(argv[1]));
@@ -32,13 +34,15 @@ int main(int argc, char** argv)
 
 
     {
+        printf("\nMinimum price case\n");
         GenOptimizer<PriceFit> opt;
         opt.createInitialPopulation(loadFromFile<TSharedDataVec>(fileName));
         opt.runOptimization(std::stoul(argv[1]));
     }
 
-
+#endif
     {
+        printf("\nMinimum power and price case\n");
         GenOptimizer<PowerPriceFit> opt;
         opt.createInitialPopulation(loadFromFile<TSharedDataVec>(fileName));
         opt.runOptimization(std::stoul(argv[1]));

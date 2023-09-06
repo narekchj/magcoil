@@ -24,7 +24,7 @@ namespace
 
     using frange = std::pair<float,float>;
 
-    static constexpr frange range_k_e = {1.0f, 1.1f};
+    static constexpr frange range_k_e = {1.5f, 1.5f};
     static constexpr frange range_k_m = {1.0f, 1.1f};
     static constexpr frange range_k_mm = {1.5f, 2.0f};
     static constexpr frange range_k_x = {0.6f, 0.8f};
@@ -84,6 +84,7 @@ class ratio_model : public mag_model<T>
 
             auto susp = std::make_unique<mag_suspension>(); //TODO: put somewhere else
             auto P_e = P_v*data.cpack.k_e.value()/n;
+            data.dir_in.F = P_e;
 
             if (!data.cpack.B_air) data.cpack.B_air = random_from(range_B_air);
             data.dir_in.B = data.cpack.B_air.value();
@@ -123,6 +124,7 @@ class ratio_model : public mag_model<T>
 
             // initiated suspension for the model
             base_class::m_susp = std::move(susp);
+            data.susp = base_class::m_susp;
         }
 
     private:

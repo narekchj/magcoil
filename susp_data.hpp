@@ -18,6 +18,9 @@ typedef struct //TODO: review this
     float Delta_m; 
 } susp_base_sizes;
 
+/// Forward declaration of the suspension.
+class mag_suspension;
+
 ///
 /// Represents whole data related to the mag susp calculation.
 ///
@@ -51,6 +54,7 @@ typedef struct
     {
         float precision = 0.01f;
         float B = 0.0f;
+        float F = 0.0f;
     } dir_in;
 
     struct
@@ -105,9 +109,10 @@ typedef struct
 
     struct
     {
-        float price = 0.f;
+        float price = 0.0f;
     } other;
 
+    std::shared_ptr<mag_suspension> susp;
 } susp_data;
 
 using circles_t = susp_data::circles_t;

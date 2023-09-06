@@ -189,12 +189,20 @@ class GenOptimizer
                     [&fitFunc = mFitFunc, &minVal](const auto& val)
                     { minVal = std::min(val, minVal, fitFunc); });
            
-            std::cout << "Final P = " << minVal->coil_out.P << std::endl;
-            std::cout << "Final price = " << minVal->other.price << "$" << std::endl;
-
-            const std::string fileToAppend = "/home/narekc/tmp/susp_data";
-            printf("Appended to the %s\n", fileToAppend.c_str()); 
-            appendToFile(fileToAppend, *minVal);
+            printf("Final P = %f\n", minVal->coil_out.P);
+            printf("Final price = %f$\n", minVal->other.price);
+            printf("B_air = %f\n", minVal->cpack.B_air.value());
+            printf("k_e = %f\n", minVal->cpack.k_e.value());
+            printf("k_m = %f\n", minVal->cpack.k_m.value());
+            printf("k_mm = %f\n", minVal->cpack.k_mm.value());
+            printf("k_x = %f\n", minVal->cpack.k_x.value());
+            printf("k_h = %f\n", minVal->cpack.k_h.value());
+            printf("k_delta = %f\n", minVal->cpack.k_delta.value());
+            printf("k_p = %f\n", minVal->cpack.k_p.value());
+//            const std::string fileToAppend = "/home/narekc/tmp/susp_data";
+//            printf("Appended to the %s\n", fileToAppend.c_str()); 
+//
+//            appendToFile(fileToAppend, *minVal);
         }
 
     public:
@@ -245,10 +253,11 @@ class GenOptimizer
                 updatePopulation(cPopulation);
             }
 
-            std::cout << std::endl;
+            printf("\n");
+            printf("Init P = %f\n", initP);
+            printf("Init price = %f$\n", initPrice);
             finishOptimization();
-            std::cout << "Init P = " << initP << std::endl;
-            std::cout << "Init price = " << initPrice << "$" << std::endl;
+
         }
 
     private:
@@ -261,7 +270,7 @@ class GenOptimizer
 
     private:
         using TPopContainer = std::vector<std::shared_ptr<ratio_susp_data>>;
-        const size_t mCrossPortion = 10;
+        const size_t mCrossPortion = 15;
         const size_t mInitCount = 100;
         TPopContainer mPopulation;
         TPopContainer mIterationMin;

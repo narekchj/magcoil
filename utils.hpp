@@ -10,6 +10,7 @@
 #endif
 
 #include <sstream>
+#include <iomanip>
 #include "ratio_mag_model.hpp"
 
 typedef struct tsizes
@@ -55,6 +56,7 @@ namespace
     auto generateRandomData(const size_t inCount = 100)
     {
         TSharedDataVec initPop;
+        initPop.reserve(inCount);
         std::mutex inMutex;
 
         const auto pass = [](const auto& dt) 
@@ -65,10 +67,11 @@ namespace
             while (true)
             {
                 auto sp_data = std::make_unique<ratio_susp_data>();
-                rm.init_suspension(*sp_data);
-                rm.calculate_direct(*sp_data);
-                rm.calculate_reverse(*sp_data);
-                rm.calculate_coil(*sp_data);
+                //rm.init_suspension(*sp_data);
+                //rm.calculate_direct(*sp_data);
+                //rm.calculate_reverse(*sp_data);
+                //rm.calculate_coil(*sp_data);
+                rm.runAll(*sp_data);
 
                 if (!pass(*sp_data)) continue;
 
@@ -77,6 +80,7 @@ namespace
                     if (initPop.size() >= inCount) return;
                     // the individum is fine add to population
                     initPop.push_back(std::move(sp_data));
+                    printf("%ld data generated\r", initPop.size());
                 }
             }
         };
@@ -91,37 +95,90 @@ namespace
         return initPop;
     }
 
+    const char* delim = ",";
+    const int cl = 10;
+
     std::ostream& operator<<(std::ostream& inStream, const ratio_susp_data& sp_data)
     {
-        inStream << sp_data.cpack.k_e.value() << " "
-            << sp_data.cpack.B_air.value() << " "
-            << sp_data.cpack.k_m.value() << " "
-            << sp_data.cpack.k_mm.value() << " "
-            << sp_data.cpack.k_x.value() << " "
-            << sp_data.cpack.k_h.value() << " "
-            << sp_data.cpack.k_delta.value() << " "
-            << sp_data.cpack.k_p.value();
+        inStream << std::left
+           << std::setw(cl) << sp_data.dir_in.F << delim 
+           << std::setw(cl) << sp_data.susp->get_a_m() << delim 
+           << std::setw(cl) << sp_data.susp->get_b_m() << delim 
+           << std::setw(cl) << sp_data.susp->get_l_m() << delim 
+           << std::setw(cl) << sp_data.susp->get_l_h() << delim 
+           << std::setw(cl) << sp_data.susp->get_b_h() << delim 
+           << std::setw(cl) << sp_data.coil_out.W << delim
+           << std::setw(cl) << sp_data.coil_out.T << delim
+           << std::setw(cl) << sp_data.cpack.k_e.value() << delim 
+           << std::setw(cl) << sp_data.cpack.B_air.value() << delim
+           << std::setw(cl) << sp_data.cpack.k_m.value() << delim
+           << std::setw(cl) << sp_data.cpack.k_mm.value() << delim
+           << std::setw(cl) << sp_data.cpack.k_x.value() << delim
+           << std::setw(cl) << sp_data.cpack.k_h.value() << delim
+           << std::setw(cl) << sp_data.cpack.k_delta.value() << delim
+           << std::setw(cl) << sp_data.cpack.k_p.value() << delim
+           << std::setw(cl) << sp_data.coil_out.P << delim
+           << std::setw(cl) << sp_data.other.price;
 
         return inStream;
     }
 
-    void generateAndSaveToFile(const std::string_view inPath,
-            const size_t inCount)
+    void generateAndSaveToFile(const std::string_view inPath, const size_t inCount)
     {
         if (inCount == 0) return;
 
         const auto& randData = generateRandomData(inCount);
         std::ofstream fileToWrite(inPath.data());
 
+        int i = 0;
         std::for_each(std::begin(randData), std::end(randData) - 1, 
-                [&fileToWrite](const auto& data)
-                { fileToWrite << *data << std::endl;});
+                [&fileToWrite, &i](const auto& data) mutable
+                { printf("%d data wrote to file\r", ++i);
+                        fileToWrite << *data << std::endl;});
+
 
         // adding the last element without new line
         fileToWrite << *randData.back();
     }
 
-    void appendToFile(const std::string_view inPath, const ratio_susp_data& sp_data)
+    void generateAndSaveToFileAsData(const std::string_view inPath, const size_t inCount)
+    {
+        if (inCount == 0) return;
+
+        const auto& randData = generateRandomData(inCount);
+        std::ofstream fileToWrite(inPath.data());
+
+        fileToWrite << std::left
+          << std::setw(cl)  << "F (N)" << delim
+          << std::setw(cl)  << "a_m (m)" << delim
+          << std::setw(cl)  << "b_m (m)" << delim
+          << std::setw(cl)  << "l_m (m)" << delim
+          << std::setw(cl)  << "l_h (m)" << delim
+          << std::setw(cl)  << "b_h (m)" << delim
+          << std::setw(cl)  << "W" << delim
+          << std::setw(cl)  << "T (C)" << delim 
+          << std::setw(cl)  << "k_e" << delim 
+          << std::setw(cl)  << "B (Tl)" << delim 
+          << std::setw(cl)  << "k_m" << delim 
+          << std::setw(cl)  << "k_mm" << delim 
+          << std::setw(cl)  << "k_x" << delim 
+          << std::setw(cl)  << "k_h" << delim 
+          << std::setw(cl)  << "k_delta" << delim 
+          << std::setw(cl)  << "k_p" << delim 
+          << std::setw(cl)  << "P (Wt)" << delim 
+          << std::setw(cl)  << "Price ($)" << std::endl;
+
+        int i = 0;
+        std::for_each(std::begin(randData), std::end(randData) - 1, 
+                [&fileToWrite, i](const auto& data)
+                { printf("%d data wrote to file\n",i);
+                 fileToWrite << *data << std::endl;});
+
+        // adding the last element without new line
+        fileToWrite << *randData.back();
+    }
+
+[[maybe_unused]] void appendToFile(const std::string_view inPath, const ratio_susp_data& sp_data)
     {
         std::ofstream fileToWrite;
 

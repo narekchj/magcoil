@@ -1,4 +1,5 @@
 #include "scenemodifier.h"
+#include "magsusp3d.h"
 
 #include <QGuiApplication>
 
@@ -35,6 +36,7 @@
 //#include <Qt3DExtras/qfirstpersoncameracontroller.h>
 #include <QOrbitCameraController>
 #include <QSlider>
+#include <QLineEdit>
 #include <QLabel>
 
 int main(int argc, char **argv)
@@ -91,15 +93,7 @@ int main(int argc, char **argv)
 
     // Scenemodifier
     SceneModifier *modifier = new SceneModifier(rootEntity, widget);
-    (void)modifier;
-
-    // Set root object of the scene
     view->setRootEntity(rootEntity);
-
-    QPushButton* stBut = new QPushButton("Start Optimization");
-    QObject::connect(stBut, &QPushButton::pressed,
-            modifier, &SceneModifier::startCalculation);
-    vLayout->addWidget(stBut);
 
     // Show window
     widget->show();

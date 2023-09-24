@@ -6,6 +6,7 @@ QMAKE_CXXFLAGS += -std=c++2a
 
 SOURCES += main.cpp \
     scenemodifier.cpp \
+    magsusp3d.cpp \
     curve.cpp \
     data_helper.cpp \
     calc_thread.cpp \
@@ -13,5 +14,6 @@ SOURCES += main.cpp \
 
 HEADERS += \
     scenemodifier.h \
+    magsusp3d.h \
     calc_thread.h \
     gen_optim.hpp

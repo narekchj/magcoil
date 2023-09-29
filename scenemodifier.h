@@ -9,6 +9,8 @@
 #include "magsusp3d.h"
 #include "consts.hpp"
 
+class QVBoxLayout;
+
 class SceneModifier : public QObject
 {
     Q_OBJECT
@@ -19,7 +21,23 @@ public:
     explicit SceneModifier(Qt3DCore::QEntity *rootEntity, QWidget* parent);
     ~SceneModifier() = default;
 
+public:
+    QVBoxLayout* getControlLayout() const 
+    {
+        return m_vLay;
+    }
+
 public slots:
+    void setAm(double in);
+    void setBm(double in);
+    void setLm(double in);
+    void setLh(double in);
+    void setBh(double in);
+    void setBx(double in);
+    void setAGap(double in);
+    void setDelm(double in);
+//    void setHp(double in);
+
     void getRes()
     {
         std::cout << "Got results\n";
@@ -101,6 +119,7 @@ private:
     Qt3DCore::QEntity *m_rootEntity = nullptr;
     QWidget* m_Parent = nullptr;
     MagSusp3D* m_susp = nullptr;
+    QVBoxLayout* m_vLay = nullptr;
 };
 
 #endif // SCENEMODIFIER_H

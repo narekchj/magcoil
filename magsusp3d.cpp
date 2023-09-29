@@ -153,8 +153,8 @@ void MagSusp3D::updateSizes(const tsizes& sz)
     b_h = sz.c.has_value() ? sz.c.value() : b_h;
     b_x = sz.b_x.has_value() ? sz.b_x.value() : b_x;
     a_gap = sz.gap.has_value() ? sz.gap.value() : a_gap;
+    del_m = sz.delm.has_value() ? sz.delm.value() : del_m;
     h_p = sz.h_p.has_value() ? sz.h_p.value() : h_p;
-    float h_isol1 = 0.99f * h_p;
 
     // anchor
     m_anchorCubeMesh->setXExtent(l_h);

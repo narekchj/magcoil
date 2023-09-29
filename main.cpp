@@ -51,10 +51,7 @@ int main(int argc, char **argv)
 
     QWidget *widget = new QWidget;
     QHBoxLayout *hLayout = new QHBoxLayout(widget);
-    QVBoxLayout *vLayout = new QVBoxLayout();
-    vLayout->setAlignment(Qt::AlignTop);
     hLayout->addWidget(container, 1);
-    hLayout->addLayout(vLayout);
 
     widget->setWindowTitle(QStringLiteral("Mag suspension"));
 
@@ -93,6 +90,7 @@ int main(int argc, char **argv)
 
     // Scenemodifier
     SceneModifier *modifier = new SceneModifier(rootEntity, widget);
+    hLayout->addLayout(modifier->getControlLayout());
     view->setRootEntity(rootEntity);
 
     // Show window

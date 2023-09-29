@@ -2,6 +2,8 @@
 #define CONSTS
 #include <optional>
 
+inline float operator ""_m(long double in) { return 10.0f * in; }
+
 inline const auto PI = 3.14f;
 inline const auto myu_0 = 4 * PI * 1E-7;
 inline const auto Ro20 = 0.0175f;
@@ -16,6 +18,7 @@ typedef struct tsizes
     std::optional<float> c = {};
     std::optional<float> b_x = {};
     std::optional<float> gap = {};
+    std::optional<float> delm = {};
     std::optional<float> h_p = {};
 
     std::optional<float> P = {}; //TODO: get rid of those

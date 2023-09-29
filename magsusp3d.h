@@ -25,10 +25,15 @@ public:
     ~MagSusp3D() = default;
 
 public slots:
-    void getRes()
-    {}
+    float getAm() { return a_m / 10.0f; }
+    float getBm() { return b_m / 10.0f; }
+    float getLm() { return l_m / 10.0f; }
+    float getLh() { return l_h / 10.0f; }
+    float getBh() { return b_h / 10.0f; }
+    float getBx() { return b_x / 10.0f; }
+    float getAGap() { return a_gap / 10.0f; }
+    float getDelm() { return del_m / 10.0f; }
 
-private:
     void updateSizes(const tsizes& sz);
 
 private:
@@ -72,7 +77,7 @@ private:
     float l_h = 3.3f;
     float b_h = 1.0f;
     float b_x = 0.6f;
-    float l_x = l_h;
+    float& l_x = l_h;
     float a_gap = 0.1f;
     float del_m = 0.05f;
     float h_p = 0.5f;

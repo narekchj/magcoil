@@ -31,6 +31,7 @@ public slots:
     float getLh() { return l_h / 10.0f; }
     float getBh() { return b_h / 10.0f; }
     float getBx() { return b_x / 10.0f; }
+    float getHp() { return h_p / 10.0f; }
     float getAGap() { return a_gap / 10.0f; }
     float getDelm() { return del_m / 10.0f; }
 

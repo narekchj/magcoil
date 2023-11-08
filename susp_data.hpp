@@ -51,11 +51,13 @@ typedef struct
     {
         float precision = 0.01f;
         float B = 0.0f;
+        float P = 0.0f;
     } dir_in;
 
     struct
     {
         circles_t data; 
+        float F_mshu = 0.0f;
     } dir_out;
 
     ///
@@ -70,6 +72,7 @@ typedef struct
     struct
     {
         circles_t data; 
+        float F_mshu = 0.0f;
     } rev_out;
 
     ///
@@ -102,6 +105,11 @@ typedef struct
         float T = 0.0f;
         float L_wire = 0.0f; //mm
     } coil_out;
+
+    struct
+    {
+        float Price = 0.0f;
+    } other;
 
 } susp_data;
 

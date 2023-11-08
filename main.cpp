@@ -43,15 +43,17 @@ int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
     Qt3DExtras::Qt3DWindow *view = new Qt3DExtras::Qt3DWindow();
+    auto* root = new Qt3DCore::QEntity();
     view->defaultFrameGraph()->setClearColor(QColor(QRgb(0xbfbfbf)));
-    QWidget *container = QWidget::createWindowContainer(view);
+    QWidget* widget = new QWidget;
+    QWidget* container = QWidget::createWindowContainer(view, widget);
     QSize screenSize = view->screen()->size();
     container->setMinimumSize(QSize(200, 100));
     container->setMaximumSize(screenSize);
 
-    QWidget *widget = new QWidget;
-    QHBoxLayout *hLayout = new QHBoxLayout(widget);
-    hLayout->addWidget(container, 1);
+    QHBoxLayout *hLayout = new QHBoxLayout();
+    widget->setLayout(hLayout);
+    hLayout->addWidget(container); // this brings to crash on exit
 
     widget->setWindowTitle(QStringLiteral("Mag suspension"));
 

@@ -59,6 +59,7 @@ class mag_model
             if (!is_initialized(data)) return;
 
             calculate_circle(data.dir_out.data, data.dir_in.B, data.dir_in.precision);
+            data.dir_out.F_mshu = get_F(data.dir_out.data).value();
         }
 
         void calculate_reverse(T& data)
@@ -81,6 +82,8 @@ class mag_model
                 const auto res_F = F_opt.has_value() ? F_opt.value() : 0.0f;
                 diff_F = (F_mshu - res_F) / F_mshu * 100;
             }
+
+            data.rev_out.F_mshu = get_F(data.rev_out.data).value();
         }
 
         void calculate_coil(T& data)
@@ -238,14 +241,14 @@ class mag_model
         }
 
     protected:
-        std::shared_ptr<mag_suspension> m_susp = nullptr;
+        std::shared_ptr<mag_suspension> m_susp = std::make_shared<mag_suspension>();
 };
 
 ///
 /// Helper to calculate wire length.
 ///
 template <typename T>
-float calculate_price(const T& data, const mag_suspension& susp) // TODO
+float calculate_price(T& data, const mag_suspension& susp) // TODO
 {
     const auto weight = data.coil_out.L_wire / 1000000.0f * 10.0f; //TODO: add the table of the psdkt weight
 
@@ -267,7 +270,8 @@ float calculate_price(const T& data, const mag_suspension& susp) // TODO
     const auto bulk_price = bulk_weight * usd_per_steel_kg;
 
     // price of the suspension
-    return bulk_price + coil_price;
+    data.other.Price = bulk_price + coil_price;
+    return data.other.Price;
 }
 
 #endif //MAG_MODEL

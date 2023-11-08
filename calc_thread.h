@@ -11,11 +11,20 @@ class CalcThread : public QThread
 {
     Q_OBJECT
     public:
-        CalcThread(SceneModifier* par) : QThread(par) {}
+        CalcThread(SceneModifier* par,
+                ratio_model<ratio_susp_data>& model,
+                std::shared_ptr<ratio_susp_data>& data) : QThread(par)
+    , md(model)
+    , dt(data)
+    {}
+
         ~CalcThread() = default;
 
-        using Result = tsizes;
         void run() override;
+
+    private:
+        ratio_model<ratio_susp_data>& md;
+        std::shared_ptr<ratio_susp_data>& dt;
 
 signals:
         void resultReady(const tsizes&);

@@ -73,23 +73,24 @@ class ratio_model : public mag_model<T>
     public:
         ratio_model(float P_vagon, float sus_count) 
             : P_v(P_vagon)
-              , n(sus_count) {}
+            , n(sus_count) {}
         ~ratio_model() = default;
 
     public:
         void init_suspension(T& data) override
         {
+            auto& susp = base_class::m_susp;
             if (!data.cpack.k_e) data.cpack.k_e = random_from(range_k_e);
-
-            auto susp = std::make_unique<mag_suspension>(); //TODO: put somewhere else
             auto P_e = P_v*data.cpack.k_e.value()/n;
 
             if (!data.cpack.B_air) data.cpack.B_air = random_from(range_B_air);
             data.dir_in.B = data.cpack.B_air.value();
+            data.dir_in.P = P_e;
             auto S_m = myu_0 * P_e / std::pow(data.dir_in.B, 2); // of a single polus, so divided by 2
             
             if (!data.cpack.k_m) data.cpack.k_m = random_from(range_k_m);
             susp->set_a_m(sqrt(S_m/data.cpack.k_m.value()));
+                    
             susp->set_b_m(S_m/susp->get_a_m());
 
             if (!data.cpack.k_mm) data.cpack.k_mm = random_from(range_k_mm);
@@ -107,8 +108,9 @@ class ratio_model : public mag_model<T>
             if (!data.cpack.k_delta) data.cpack.k_delta = random_from(range_k_delta);
             susp->set_Delta_p(data.cpack.k_delta.value()*susp->get_l_m());
             susp->set_Delta_m(0.005f);
-            auto h_p = susp->get_l_m()-susp->get_b_h()-susp->get_Delta_m()-susp->get_Delta_p();
+            auto h_p = susp->get_l_m() - susp->get_b_h() - susp->get_Delta_m() - susp->get_Delta_p();
             susp->set_h_p(h_p);
+
             if (!data.cpack.k_p) data.cpack.k_p = random_from(range_k_p);
             susp->set_l_p(susp->get_h_p()*data.cpack.k_p.value());
             susp->set_l_h(susp->get_l_p()+2*(susp->get_b_m()+susp->get_Delta_m()));
@@ -119,9 +121,6 @@ class ratio_model : public mag_model<T>
             data.coil_in.U = 220.0f;
             data.coil_in.k_fill = 0.95f;
             data.coil_in.T_allow = 160.0f;
-
-            // initiated suspension for the model
-            base_class::m_susp = std::move(susp);
         }
 
     private:

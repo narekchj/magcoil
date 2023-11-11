@@ -12,7 +12,7 @@
 namespace 
 {
     using frange = std::pair<float,float>;
-    constexpr frange range_k_e = {1.0f, 1.1f};
+    constexpr frange range_k_e = {1.0f, 1.5f};
     constexpr frange range_k_m = {1.0f, 1.1f};
     constexpr frange range_k_mm = {1.5f, 2.0f};
     constexpr frange range_k_x = {0.6f, 0.8f};

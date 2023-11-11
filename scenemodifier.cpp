@@ -219,6 +219,8 @@ SceneModifier::SceneModifier(Qt3DCore::QEntity* rootEntity, QWidget* parent)
     mResultsDialog->setTextInteractionFlags(Qt::NoTextInteraction);
     m_vLay->addWidget(mResultsDialog);
     m_vLay->setAlignment(mResultsDialog, Qt::AlignHCenter);
+
+    updateSizes();
 }
 
 void SceneModifier::setAm(double in)

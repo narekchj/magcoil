@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 
     // Show window
     widget->show();
-    widget->resize(1200, 800);
+    widget->setFixedSize(1000, 500);
 
     return app.exec();
 }

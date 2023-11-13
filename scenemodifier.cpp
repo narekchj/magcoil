@@ -38,10 +38,10 @@ namespace {
         box1->setMinimum(opts.min);
         box1->setMaximum(opts.max);
         box1->setSingleStep(opts.step);
-        lay1->addSpacing(50);
+        lay1->addSpacing(2);
         lay1->addWidget(lab1);
         lay1->addWidget(box1);
-        lay1->addSpacing(100);
+        lay1->addSpacing(2);
 
         using ft = void (QDoubleSpinBox::*)(double);
 
@@ -205,17 +205,17 @@ SceneModifier::SceneModifier(Qt3DCore::QEntity* rootEntity, QWidget* parent)
     m_vLay = new QVBoxLayout();
     m_vLay->addLayout(hLay);
 
-    m_vLay->addSpacing(100);
+    m_vLay->addSpacing(5);
     m_vLay->addLayout(createButton("Generate random K set and Calculate", this, &SceneModifier::reInitSusp));
-    m_vLay->addSpacing(10);
+    m_vLay->addSpacing(5);
     m_vLay->addLayout(createButton("Calculate", this, &SceneModifier::startCalculation));
 
-    m_vLay->addSpacing(100);
+    m_vLay->addSpacing(5);
     QLabel* resLabel = new QLabel("Results");
     m_vLay->addWidget(resLabel);
     m_vLay->setAlignment(resLabel, Qt::AlignHCenter);
     mResultsDialog = new QTextEdit;
-    mResultsDialog->setFixedSize(QSize(300,300));
+    mResultsDialog->setFixedSize(QSize(500,150));
     mResultsDialog->setTextInteractionFlags(Qt::NoTextInteraction);
     m_vLay->addWidget(mResultsDialog);
     m_vLay->setAlignment(mResultsDialog, Qt::AlignHCenter);
